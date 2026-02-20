@@ -1,0 +1,130 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:suki="https://github.com/kikipoulet/SukiUI"
+             xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+
+             x:Class="SimpleRawEditor.App"
+             RequestedThemeVariant="Default">
+             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+
+    <Application.Styles>
+        <suki:SukiTheme ThemeColor="Blue"  />
+        <avalonia:MaterialIconStyles />
+        
+            <Style Selector="Expander">
+        <Setter Property="TextBlock.TextAlignment" Value="Start" />
+        <Setter Property="ClipToBounds" Value="False" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="ContentTransition" Value="{x:Null}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="PART_RootBorder"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                    <Border Name="PART_InnerBorder" CornerRadius="{TemplateBinding CornerRadius}">
+                        <Panel>
+                            <suki:ContentExpandControl Name="PART_ContentExpand"
+                                                           HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                           VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                           Content="{TemplateBinding Content}"
+                                                           ContentTemplate="{TemplateBinding ContentTemplate}" />
+
+                            <LayoutTransformControl Name="PART_ToggleTransform">
+                              
+
+<Panel>
+    
+
+                                    <ToggleButton Name="PART_ToggleButton"
+                                                  HorizontalAlignment="Right"
+                                                  VerticalAlignment="Center"
+                                                  HorizontalContentAlignment="Stretch"
+                                                  Background="Transparent" Margin="5,0"
+                                                  BorderBrush="{DynamicResource SukiBorderBrush}"
+                                                  BorderThickness="0"
+                                                  Classes="Basic"
+                                                  
+                                                  IsChecked="{TemplateBinding IsExpanded,
+                                                                              Mode=TwoWay}">
+                                     
+<suki:GlassCard Padding="11" >
+    <LucideIcon Kind="ChevronDown" VerticalAlignment="Top" Margin="-7,-7,8,8"  HorizontalAlignment="Left" Name="PART_ICON" Foreground="{DynamicResource SukiText}"  Width="8" Height="8"/>
+
+</suki:GlassCard>
+                                            
+                                       
+                                    </ToggleButton>
+</Panel>
+                                
+                            </LayoutTransformControl>
+                        </Panel>
+                    </Border>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+        </Style>
+
+        <Style Selector="Expander:not(.no-transitions) /template/ suki|ContentExpandControl#PART_ContentExpand">
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Easing="CircularEaseOut"
+                                      Property="Multiplier"
+                                      Duration="0.25" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Expander /template/ Border#PART_InnerBorder">
+            <Setter Property="ClipToBounds" Value="True" />
+        </Style>
+
+        <Style Selector="Expander:expanded /template/ ToggleButton#PART_ToggleButton">
+            <Style Selector="^:checked">
+                <Setter Property="Background" Value="Transparent" />
+            </Style>
+        </Style>
+
+        <Style Selector="Expander /template/ LayoutTransformControl#PART_ToggleTransform">
+            <Setter Property="ClipToBounds" Value="False" />
+        </Style>
+
+        <Style Selector="Expander /template/ suki|ContentExpandControl#PART_ContentExpand">
+            <Setter Property="Multiplier" Value="0" />
+        </Style>
+
+        <Style Selector="Expander:expanded /template/ suki|ContentExpandControl#PART_ContentExpand">
+            <Setter Property="Multiplier" Value="1" />
+        </Style>
+
+        <Style Selector="Expander:expanded /template/ LucideIcon#PART_ICON">
+            <Setter Property="Kind" Value="ChevronUp"/>
+        </Style>
+
+        <Style Selector="Expander:up">
+            <Style Selector="^ /template/ suki|ContentExpandControl#PART_ContentExpand">
+                <Setter Property="Orientation" Value="Vertical" />
+                <Setter Property="VerticalAlignment" Value="Bottom" />
+                <Setter Property="Margin" Value="0,0,0,48" />
+            </Style>
+
+           
+
+      
+        </Style>
+
+        <Style Selector="Expander:down">
+            <Style Selector="^ /template/ suki|ContentExpandControl#PART_ContentExpand">
+                <Setter Property="Orientation" Value="Vertical" />
+                <Setter Property="VerticalAlignment" Value="Top" />
+                <Setter Property="Margin" Value="0,48,0,0" />
+            </Style>
+
+        </Style>
+
+
+
+
+    </Application.Styles>
+</Application>
