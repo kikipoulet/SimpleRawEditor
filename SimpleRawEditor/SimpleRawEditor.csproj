@@ -26,4 +26,8 @@
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
         <PackageReference Include="SukiUI" Version="6.0.4-nightly20260219" />
     </ItemGroup>
+
+    <ItemGroup>
+        <None Include="lut\**\*.*" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
 </Project>

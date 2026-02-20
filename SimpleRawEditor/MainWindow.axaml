@@ -56,7 +56,7 @@
                 <!-- Exposition -->
                 <StackPanel Spacing="-2" Margin="20,0">
                   <TextBlock Foreground="{DynamicResource SukiLowText}"  FontSize="13" FontWeight="DemiBold" Text="Exposure"></TextBlock>
-                  <Slider Margin="-8,0" Minimum="-100" Maximum="100" Value="{Binding CurrentAdjustments.Exposure}" 
+                  <Slider Classes="Light" Margin="-8,0" Minimum="-100" Maximum="100" Value="{Binding CurrentAdjustments.Exposure}" 
                           TickFrequency="1" IsSnapToTickEnabled="True"
                           PointerPressed="OnSliderPointerPressed"
                           PointerReleased="OnSliderPointerReleased" />
@@ -125,40 +125,47 @@
 
             <!-- LUT - activable -->
             <Panel >
-              <CheckBox VerticalAlignment="Top" IsChecked="{Binding CurrentAdjustments.IsLutEnabled}" 
-                        Content="Lut" 
-                        Foreground="White"  FontFamily="{DynamicResource DefaultFontFamily}"
-                        FontSize="18" Margin="17,13"
-                        FontWeight="SemiBold" />
+             
               
               <Expander IsExpanded="{Binding CurrentAdjustments.IsLutExpanded}" 
                         IsVisible="{Binding CurrentAdjustments.IsLutEnabled}"
                         Background="Transparent" Margin="0,2,0,0"
                         Padding="10,7,0,7">
-                <StackPanel Spacing="10">
-                  <Button Command="{Binding LoadLutCommand}" HorizontalAlignment="Stretch" Padding="10,5">
-                    <TextBlock Text="Charger LUT..." HorizontalAlignment="Center" />
-                  </Button>
-                  
-                  <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding CurrentAdjustments.HasLut}">
-                    <TextBlock Text="{Binding CurrentAdjustments.LutFileName}" Foreground="#AAAAAA" TextTrimming="CharacterEllipsis" />
+                <StackPanel Margin="10,15" Spacing="10">
+                  <Grid ColumnDefinitions="*,Auto">
+                    <ComboBox ItemsSource="{Binding AvailableLuts}"
+                              SelectedItem="{Binding SelectedLutName}"
+                              PlaceholderText="Sélectionner une LUT..."
+                              HorizontalAlignment="Stretch" />
+                    <Button Grid.Column="1" 
+                            Command="{Binding LoadExternalLutCommand}" 
+                            Width="32" Height="32" Padding="0,0"
+                            Margin="5,0,0,0"
+                            ToolTip.Tip="Charger un fichier LUT externe...">
+                      <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="..." FontWeight="Bold" />
+                    </Button>
                   </Grid>
                   
-                  <StackPanel Margin="0,10" Spacing="5" IsVisible="{Binding CurrentAdjustments.HasLut}">
-                    <Grid ColumnDefinitions="*,Auto">
-                      <TextBlock Text="Intensité" Foreground="White" />
-                      <TextBlock Grid.Column="1" Text="{Binding CurrentAdjustments.LutIntensity, StringFormat={}{0:F0}%}" Foreground="#AAAAAA" />
-                    </Grid>
-                    <Slider Minimum="0" Maximum="100" Value="{Binding CurrentAdjustments.LutIntensity}" 
-                            TickFrequency="1" IsSnapToTickEnabled="True"
-                            PointerPressed="OnSliderPointerPressed"
-                            PointerReleased="OnSliderPointerReleased" />
-                    <Button Command="{Binding ClearLutCommand}" HorizontalAlignment="Stretch" Padding="5,3" Margin="0,5,0,0">
-                      <TextBlock Text="Supprimer LUT" HorizontalAlignment="Center" FontSize="12" />
-                    </Button>
+                  
+                  <StackPanel Margin="0,10,0,0" Spacing="5" IsVisible="{Binding CurrentAdjustments.HasLut}">
+                    <DockPanel >
+                      <avalonia:MaterialIcon Opacity="0.5" Kind="ImageFilterCenterFocusStrongOutline" DockPanel.Dock="Left" Margin="15,0,5,0" VerticalAlignment="Center" Height="16" Width="16" Foreground="{DynamicResource SukiLowText}" ></avalonia:MaterialIcon>
+                      <avalonia:MaterialIcon Kind="ImageFilterCenterFocusStrong" DockPanel.Dock="Right" Margin="5,0,15,0" VerticalAlignment="Center" Height="16" Width="16" Foreground="{DynamicResource SukiLowText}" ></avalonia:MaterialIcon>
+                      <Slider Minimum="-100" Maximum="100" Value="{Binding CurrentAdjustments.LutIntensity}" 
+                              TickFrequency="1" IsSnapToTickEnabled="True"
+                              PointerPressed="OnSliderPointerPressed"
+                              PointerReleased="OnSliderPointerReleased" />
+                    </DockPanel>
+               
                   </StackPanel>
                 </StackPanel>
               </Expander>
+              
+              <CheckBox VerticalAlignment="Top" IsChecked="{Binding CurrentAdjustments.IsLutEnabled}" 
+                        Content="Lut" 
+                        Foreground="White"  FontFamily="{DynamicResource DefaultFontFamily}"
+                        FontSize="18" Margin="17,13"
+                        FontWeight="SemiBold" />
             </Panel>
 
             <Separator Background="#555555" Margin="0,5,0,5" />

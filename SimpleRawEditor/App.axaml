@@ -11,6 +11,10 @@
         <suki:SukiTheme ThemeColor="Blue"  />
         <avalonia:MaterialIconStyles />
         
+        
+        <Style Selector="ProgressBar /template/ Border#PART_Indicator">
+            <Setter Property="Background" Value="Red" />
+        </Style>
             <Style Selector="Expander">
         <Setter Property="TextBlock.TextAlignment" Value="Start" />
         <Setter Property="ClipToBounds" Value="False" />

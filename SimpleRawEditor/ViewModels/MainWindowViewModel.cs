@@ -16,6 +16,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 {
     private readonly RawImageService _rawImageService;
     private readonly DebouncedImageProcessor _imageProcessor;
+    private readonly LutService _lutService;
     private RawImageData? _currentRawImage;
     private Bitmap? _originalBitmap;
     private bool _isDraggingSlider;
@@ -23,6 +24,12 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private ObservableCollection<LoadedImageViewModel> _loadedImages = new();
+
+    [ObservableProperty]
+    private ObservableCollection<string> _availableLuts = new();
+
+    [ObservableProperty]
+    private string? _selectedLutName;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanProcess))]
@@ -45,6 +52,9 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         _rawImageService = new RawImageService();
         _imageProcessor = new DebouncedImageProcessor();
+        _lutService = new LutService();
+
+        LoadAvailableLuts();
 
         _imageProcessor.ImageProcessed += (s, image) =>
         {
@@ -55,6 +65,15 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         {
             Console.WriteLine(error);
         };
+    }
+
+    private void LoadAvailableLuts()
+    {
+        AvailableLuts.Clear();
+        foreach (var lutName in _lutService.GetAvailableLuts())
+        {
+            AvailableLuts.Add(lutName);
+        }
     }
 
     private void SubscribeToAdjustments(ImageAdjustments? adjustments)
@@ -216,14 +235,14 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    private async Task LoadLutAsync()
+    private async Task LoadExternalLutAsync()
     {
         var window = GetWindow();
         if (window == null) return;
 
         var options = new FilePickerOpenOptions
         {
-            Title = "Charger une LUT",
+            Title = "Charger une LUT externe",
             AllowMultiple = false,
             FileTypeFilter = new[]
             {
@@ -245,13 +264,15 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             try
             {
                 var filePath = result[0].Path.LocalPath;
-                var lut = await Task.Run(() => CubeLutParser.Parse(filePath));
+                var lut = await Task.Run(() => _lutService.LoadFromPath(filePath));
 
                 if (CurrentAdjustments != null)
                 {
                     CurrentAdjustments.ActiveLut = lut;
                     CurrentAdjustments.LutFileName = Path.GetFileName(filePath);
                     CurrentAdjustments.LutIntensity = 100;
+                    CurrentAdjustments.IsLutEnabled = true;
+                    SelectedLutName = null;
                     StatusMessage = $"LUT chargée: {CurrentAdjustments.LutFileName} (taille: {lut.Size})";
                 }
             }
@@ -262,10 +283,33 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         }
     }
 
+    partial void OnSelectedLutNameChanged(string? value)
+    {
+        if (value == null || CurrentAdjustments == null) return;
+
+        try
+        {
+            var lut = _lutService.LoadLut(value);
+            if (lut != null)
+            {
+                CurrentAdjustments.ActiveLut = lut;
+                CurrentAdjustments.LutFileName = value;
+                CurrentAdjustments.LutIntensity = 100;
+                CurrentAdjustments.IsLutEnabled = true;
+                StatusMessage = $"LUT chargée: {value} (taille: {lut.Size})";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Erreur chargement LUT: {ex.Message}";
+        }
+    }
+
     [RelayCommand]
     private void ClearLut()
     {
         CurrentAdjustments?.ClearLut();
+        SelectedLutName = null;
         StatusMessage = "LUT supprimée";
     }
 
