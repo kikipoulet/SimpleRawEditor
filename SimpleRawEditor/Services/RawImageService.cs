@@ -6,10 +6,11 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Sdcb.LibRaw;
 using SimpleRawEditor.Models;
+using SimpleRawEditor.Services.Interfaces;
 
 namespace SimpleRawEditor.Services;
 
-public class RawImageService
+public class RawImageService : IRawImageService
 {
     public async Task<RawImageData?> LoadRawImageAsync(string filePath)
     {
@@ -19,17 +20,16 @@ public class RawImageService
             {
                 using var context = RawContext.OpenFile(filePath);
                 context.Unpack();
-                
-                // Traitement avec les paramètres par défaut
+
                 context.DcrawProcess(c =>
                 {
                     c.UseCameraWb = true;
                     c.HalfSize = false;
                 });
-                
+
                 using var processedImage = context.MakeDcrawMemoryImage();
                 var bitmap = ProcessedImageToBitmap(processedImage);
-                
+
                 return new RawImageData
                 {
                     FilePath = filePath,
@@ -58,9 +58,9 @@ public class RawImageService
                 context.DcrawProcess(c =>
                 {
                     c.UseCameraWb = true;
-                    c.HalfSize = true; // Pour accélérer le traitement (1/4 de la taille)
+                    c.HalfSize = true;
                 });
-                
+
                 using var processedImage = context.MakeDcrawMemoryImage();
                 return ProcessedImageToBitmap(processedImage);
             }
@@ -76,53 +76,39 @@ public class RawImageService
     {
         int width = rgbImage.Width;
         int height = rgbImage.Height;
-        
+
         var writeableBitmap = new WriteableBitmap(
             new PixelSize(width, height),
             new Vector(96, 96),
             PixelFormat.Bgra8888,
             AlphaFormat.Opaque);
-        
+
         using var buffer = writeableBitmap.Lock();
-        
+
         var srcData = rgbImage.GetData<byte>();
         int srcStride = width * 3;
         int destStride = buffer.RowBytes;
-        
+
         byte* destPtr = (byte*)buffer.Address;
-        
+
         for (int y = 0; y < height; y++)
         {
             for (int x = 0; x < width; x++)
             {
                 int srcIndex = y * srcStride + x * 3;
                 int destIndex = y * destStride + x * 4;
-                
+
                 byte r = srcData[srcIndex];
                 byte g = srcData[srcIndex + 1];
                 byte b = srcData[srcIndex + 2];
-                
+
                 destPtr[destIndex] = b;
                 destPtr[destIndex + 1] = g;
                 destPtr[destIndex + 2] = r;
                 destPtr[destIndex + 3] = 255;
             }
         }
-        
-        return writeableBitmap;
-    }
-}
 
-public class RawImageData : IDisposable
-{
-    public string FilePath { get; set; } = string.Empty;
-    public string FileName { get; set; } = string.Empty;
-    public Bitmap? OriginalBitmap { get; set; }
-    public int Width { get; set; }
-    public int Height { get; set; }
-    
-    public void Dispose()
-    {
-        OriginalBitmap?.Dispose();
+        return writeableBitmap;
     }
 }

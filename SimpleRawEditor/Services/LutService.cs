@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using SimpleRawEditor.Models;
+using SimpleRawEditor.Services.Interfaces;
 
 namespace SimpleRawEditor.Services;
 
-public class LutService
+public class LutService : ILutService
 {
     private readonly string _lutFolder;
 

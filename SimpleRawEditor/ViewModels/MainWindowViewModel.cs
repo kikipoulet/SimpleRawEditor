@@ -9,14 +9,15 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SimpleRawEditor.Models;
 using SimpleRawEditor.Services;
+using SimpleRawEditor.Services.Interfaces;
 
 namespace SimpleRawEditor.ViewModels;
 
 public partial class MainWindowViewModel : ObservableObject, IDisposable
 {
-    private readonly RawImageService _rawImageService;
-    private readonly DebouncedImageProcessor _imageProcessor;
-    private readonly LutService _lutService;
+    private readonly IRawImageService _rawImageService;
+    private readonly IImageProcessor _imageProcessor;
+    private readonly ILutService _lutService;
     private RawImageData? _currentRawImage;
     private Bitmap? _originalBitmap;
     private bool _isDraggingSlider;
@@ -48,20 +49,24 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public bool CanProcess => SelectedImage != null;
     public ImageAdjustments? CurrentAdjustments => SelectedImage?.Adjustments;
 
-    public MainWindowViewModel()
+    public MainWindowViewModel() : this(new RawImageService(), new DebouncedImageProcessor(), new LutService())
     {
-        _rawImageService = new RawImageService();
-        _imageProcessor = new DebouncedImageProcessor();
-        _lutService = new LutService();
+    }
+
+    public MainWindowViewModel(IRawImageService rawImageService, IImageProcessor imageProcessor, ILutService lutService)
+    {
+        _rawImageService = rawImageService;
+        _imageProcessor = imageProcessor;
+        _lutService = lutService;
 
         LoadAvailableLuts();
 
-        _imageProcessor.ImageProcessed += (s, image) =>
+        _imageProcessor.ImageProcessed += (_, image) =>
         {
             DisplayedImage = image;
         };
 
-        _imageProcessor.ProcessingError += (s, error) =>
+        _imageProcessor.ProcessingError += (_, error) =>
         {
             Console.WriteLine(error);
         };
@@ -327,26 +332,4 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         _originalBitmap?.Dispose();
         DisplayedImage?.Dispose();
     }
-}
-
-public partial class LoadedImageViewModel : ObservableObject
-{
-    [ObservableProperty]
-    private string _filePath = string.Empty;
-
-    [ObservableProperty]
-    private string _fileName = string.Empty;
-
-    [ObservableProperty]
-    private Bitmap? _thumbnail;
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(BorderBrush))]
-    private bool _isSelected;
-
-    public ImageAdjustments Adjustments { get; } = new();
-
-    public Avalonia.Media.IBrush BorderBrush => IsSelected
-        ? Avalonia.Media.Brushes.Orange
-        : Avalonia.Media.Brushes.Transparent;
 }
