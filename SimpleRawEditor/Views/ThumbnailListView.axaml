@@ -5,14 +5,16 @@
              xmlns:controls="using:SimpleRawEditor.Controls"
              xmlns:vm="using:SimpleRawEditor.ViewModels"
              xmlns:suki="https://github.com/kikipoulet/SukiUI"
+             xmlns:main="clr-namespace:SimpleRawEditor.ViewModels.Main"
              mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="130"
              x:Class="SimpleRawEditor.Views.ThumbnailListView"
-             x:DataType="vm:Main.Thumbnails.ThumbnailListViewModel">
+             x:DataType="main:MainViewModel">
 
     <suki:GlassCard CornerRadius="0" Padding="0">
-        <Border BorderBrush="{DynamicResource SukiBorderBrush}" Padding="10" BorderThickness="0,1,0,0">
+        <Border Height="180" BorderBrush="{DynamicResource SukiBorderBrush}" Padding="10" BorderThickness="0,1,0,0">
+            <Panel>
             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-                <ItemsControl ItemsSource="{Binding Thumbnails}">
+                <ItemsControl VerticalAlignment="Center" ItemsSource="{Binding ThumbnailList.Thumbnails}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <StackPanel Orientation="Horizontal" Spacing="10" />
@@ -25,6 +27,12 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </ScrollViewer>
+                
+                <StackPanel Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding !ThumbnailList.HasThumbnails}">
+                    <LucideIcon HorizontalAlignment="Center" Kind="Images" Width="30" Height="30" Foreground="{DynamicResource SukiText}"></LucideIcon>
+                        <TextBlock  Text="No Images opened yet." FontSize="16" FontWeight="DemiBold" HorizontalAlignment="Center"></TextBlock>
+                      </StackPanel>
+                </Panel>
         </Border>
     </suki:GlassCard>
 </UserControl>

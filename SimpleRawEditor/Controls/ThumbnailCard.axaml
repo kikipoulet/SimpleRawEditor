@@ -15,8 +15,8 @@
             BorderThickness="0"
             Cursor="Hand">
         <suki:GlassCard CornerRadius="13"
-                        Width="130"
-                        Height="130"
+                        Width="150"
+                        Height="150"
                         Padding="5">
             <Grid RowDefinitions="*,Auto">
                 <Border Margin="2"

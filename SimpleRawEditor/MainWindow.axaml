@@ -8,32 +8,26 @@
          xmlns:editor="using:SimpleRawEditor.Views.Editor"
          mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
          x:Class="SimpleRawEditor.MainWindow"
-         x:DataType="vm:MainViewModel"
+         x:DataType="vm:MainViewModel" IsMenuVisible="True"
          Title="Simple RAW Editor">
 
   <Design.DataContext>
     <vm:MainViewModel />
   </Design.DataContext>
+  <suki:SukiWindow.MenuItems>
+   <MenuItem Header="File">
+     <MenuItem Command="{Binding OpenImagesCommand}" Header="Open Images"></MenuItem>
+   </MenuItem>
+  </suki:SukiWindow.MenuItems>
 
-  <Grid RowDefinitions="Auto,*,Auto">
-    <!-- Barre d'outils -->
-    <suki:GlassCard CornerRadius="0" Padding="0" Grid.Row="0" >
-      <Border Padding="10,5" BorderBrush="{DynamicResource SukiBorderBrush}"  BorderThickness="0,0,0,1">
-        <StackPanel Orientation="Horizontal" Spacing="10">
-          <Button Classes="Flat" Command="{Binding OpenImagesCommand}" Padding="10,5">
-            <StackPanel Orientation="Horizontal" Spacing="5">
-              <PathIcon Data="M20,6A2,2 0 0,1 22,8V18A2,2 0 0,1 20,20H4C2.89,20 2,19.1 2,18V6C2,4.89 2.89,4 4,4H10L12,6H20M19.25,13H16V9H14V13H10.75L15,17.25L19.25,13Z" />
-              <TextBlock Text="Open Images" VerticalAlignment="Center" />
-            </StackPanel>
-          </Button>
+  <Grid RowDefinitions="*,Auto">
+    <!-- 
           <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center" Foreground="White" Margin="20,0,0,0" />
           <ProgressBar Height="15" VerticalAlignment="Center" IsVisible="{Binding IsLoading}" IsIndeterminate="True" Width="120" Margin="10,0,0,0" />
-        </StackPanel>
-      </Border>
-    </suki:GlassCard>
+       -->
 
     <!-- Zone principale -->
-    <Grid Grid.Row="1" ColumnDefinitions="*,350">
+    <Grid Grid.Row="0" ColumnDefinitions="*,350">
       <!-- Image principale -->
       <Border Grid.Column="0" Padding="10">
         <Image Source="{Binding Editor.DisplayedImage}"
@@ -47,6 +41,6 @@
     </Grid>
 
     <!-- Liste des thumbnails -->
-    <views:ThumbnailListView Grid.Row="2" DataContext="{Binding ThumbnailList}" />
+    <views:ThumbnailListView Grid.Row="1" DataContext="{Binding }" />
   </Grid>
 </suki:SukiWindow>
