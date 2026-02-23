@@ -35,7 +35,7 @@ public class ImageProcessingService : IDisposable
 
     public ImageProcessingService()
     {
-        _denoiser = new BM3DDenoising();
+        _denoiser = new BilateralFilter();
     }
     
     /// <summary>

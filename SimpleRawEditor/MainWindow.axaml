@@ -32,7 +32,7 @@
     </suki:GlassCard>
 
     <!-- Zone principale -->
-    <Grid Grid.Row="1" ColumnDefinitions="*,300">
+    <Grid Grid.Row="1" ColumnDefinitions="*,350">
       <!-- Image principale -->
       <Border Grid.Column="0"  Padding="10">
         <Image Source="{Binding DisplayedImage}" 

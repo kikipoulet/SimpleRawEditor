@@ -127,8 +127,88 @@
 
         </Style>
 
+ <Style Selector="Slider:horizontal">
+        <Setter Property="MinWidth" Value="40" />
+        <Setter Property="MinHeight" Value="20" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid Name="grid">
+                    <Grid.Resources>
+                       
+                    </Grid.Resources>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" MinHeight="20" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <suki:GlassCard Name="TrackBackground"
+                            Grid.Row="1" Classes="Control"
+                            Height="7" Opacity="0"
+                            Margin="8,0"
+                            VerticalAlignment="Center"
+                            BorderThickness="0"
+                            CornerRadius="20" />
+
+                    <Track Name="PART_Track"
+                           Grid.Row="1"
+                           IsDirectionReversed="{TemplateBinding IsDirectionReversed}"
+                           Orientation="Horizontal">
+                        <Track.DecreaseButton>
+                            <RepeatButton Name="PART_DecreaseButton"
+                                          Height="7"
+                                          Margin="8,0,-3,0"
+                                          HorizontalAlignment="Stretch"
+                                          Background="{DynamicResource SukiPrimaryColor75}"
+                                          BorderThickness="0"
+                                          CornerRadius="20,20,20,20"
+                                          Focusable="False" />
+                        </Track.DecreaseButton>
+                        <Track.IncreaseButton>
+                            
+                            <RepeatButton Name="PART_IncreaseButton" Classes="repeattrack2" >
+                               
+                            </RepeatButton>
+                                
+                        </Track.IncreaseButton>
+                        <Thumb Name="thumb" Margin="3,0,0,0">
+                            <Thumb.Template>
+                                <ControlTemplate>
+                                    <Grid Width="32" Height="32">
+                                        <Border Width="18"
+                                                Height="18"
+                                                Margin="0"
+                                                Background="White"
+                                                BorderThickness="4" BorderBrush="{DynamicResource SukiPrimaryColor120}"
+                                                Classes="ThumbBorder ThumbB"
+                                                CornerRadius="{DynamicResource MediumCornerRadius}" />
+                                    </Grid>
+                                </ControlTemplate>
+                            </Thumb.Template>
+                        </Thumb>
+                    </Track>
 
 
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+    </Style>
 
+        
+        <Style Selector="Slider /template/ RepeatButton.repeattrack2">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Foreground" Value="{DynamicResource ThemeBorderLowBrush}" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <suki:GlassCard 
+                        Grid.Row="1" Classes="Control"
+                        Height="7"
+                        Margin="0,0"
+                        VerticalAlignment="Center"
+                        BorderThickness="0"
+                        CornerRadius="20" />
+                </ControlTemplate>
+            </Setter>
+        </Style>
     </Application.Styles>
 </Application>
