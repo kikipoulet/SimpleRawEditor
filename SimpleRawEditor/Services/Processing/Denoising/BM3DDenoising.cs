@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
-namespace SimpleRawEditor.Services.Denoising;
+namespace SimpleRawEditor.Services.Processing.Denoising;
 
 public unsafe class BM3DDenoising : IDenoisingAlgorithm
 {

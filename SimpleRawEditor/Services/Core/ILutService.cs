@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using SimpleRawEditor.Models;
 
-namespace SimpleRawEditor.Services.Interfaces;
+namespace SimpleRawEditor.Services.Core;
 
 public interface ILutService
 {

@@ -1,0 +1,56 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:SimpleRawEditor.ViewModels.Editor.Adjustments"
+             mc:Ignorable="d" d:DesignWidth="300"
+             x:Class="SimpleRawEditor.Views.Adjustments.LutView"
+             x:DataType="vm:LutViewModel">
+
+    <Panel>
+        <Expander IsExpanded="{Binding IsExpanded}"
+                  IsVisible="{Binding IsEnabled}"
+                  Background="Transparent"
+                  Margin="0,2,0,0"
+                  Padding="10,7,0,7">
+            <StackPanel Margin="20,15" Spacing="10">
+                <Grid ColumnDefinitions="*,Auto">
+                    <ComboBox ItemsSource="{Binding AvailablePresets}"
+                              SelectedItem="{Binding SelectedPresetName}"
+                              PlaceholderText="Sélectionner une LUT..."
+                              HorizontalAlignment="Stretch" />
+                    <Button Grid.Column="1"
+                            Command="{Binding LoadExternalLutCommand}"
+                            Width="32"
+                            Height="32"
+                            Padding="0,0"
+                            Margin="5,0,0,0"
+                            ToolTip.Tip="Charger un fichier LUT externe...">
+                        <TextBlock HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Text="..."
+                                   FontWeight="Bold" />
+                    </Button>
+                </Grid>
+
+                <!-- Intensity -->
+                <StackPanel Margin="0,15,0,0" Spacing="-4" IsVisible="{Binding HasLut}">
+                    <TextBlock Text="Intensity" Foreground="{DynamicResource SukiLowText}" FontSize="13" FontWeight="DemiBold" />
+                    <Slider Minimum="-100" Maximum="100" Value="{Binding Intensity}" 
+                            TickFrequency="1" IsSnapToTickEnabled="True" Margin="-8,0" Classes="Light" />
+                </StackPanel>
+
+                
+            </StackPanel>
+        </Expander>
+
+        <CheckBox VerticalAlignment="Top"
+                  IsChecked="{Binding IsEnabled}"
+                  Content="Lut"
+                  Foreground="White"
+                  FontFamily="{DynamicResource DefaultFontFamily}"
+                  FontSize="18"
+                  Margin="17,13"
+                  FontWeight="SemiBold" />
+    </Panel>
+</UserControl>

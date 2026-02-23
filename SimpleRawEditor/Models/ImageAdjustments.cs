@@ -7,6 +7,10 @@ public partial class ImageAdjustments : ObservableObject
 {
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(NeedsUpdate))]
+    private bool _isBasicAdjustmentsEnabled = true;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NeedsUpdate))]
     private double _exposure;
 
     [ObservableProperty]
@@ -74,6 +78,7 @@ public partial class ImageAdjustments : ObservableObject
 
     public void Reset()
     {
+        IsBasicAdjustmentsEnabled = true;
         Exposure = 0;
         Highlights = 0;
         Contrast = 0;

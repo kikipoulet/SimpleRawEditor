@@ -1,0 +1,40 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:SimpleRawEditor.ViewModels.Editor.Adjustments"
+             mc:Ignorable="d" d:DesignWidth="300"
+             x:Class="SimpleRawEditor.Views.Adjustments.VignetteView"
+             x:DataType="vm:VignetteViewModel">
+
+    <Panel>
+        <CheckBox VerticalAlignment="Top"
+                  IsChecked="{Binding IsEnabled}"
+                  Content="Vignette"
+                  Foreground="White"
+                  FontFamily="{DynamicResource DefaultFontFamily}"
+                  FontSize="18"
+                  Margin="17,13"
+                  FontWeight="SemiBold" />
+        <Expander IsExpanded="{Binding IsExpanded}"
+                  IsVisible="{Binding IsEnabled}"
+                  Background="Transparent"
+                  Margin="0,2,0,0"
+                  Padding="10,7,0,7">
+            <StackPanel Margin="20,15,20,15" Spacing="12">
+                <!-- Intensity -->
+                <StackPanel Spacing="-4">
+                    <TextBlock Text="Intensity" Foreground="{DynamicResource SukiLowText}" FontSize="13" FontWeight="DemiBold" />
+                    <Slider Minimum="-100" Maximum="100" Value="{Binding Intensity}" 
+                            TickFrequency="1" IsSnapToTickEnabled="True" Margin="-8,0" Classes="Light" />
+                </StackPanel>
+                <!-- Spread -->
+                <StackPanel Spacing="-4">
+                    <TextBlock Text="Spread" Foreground="{DynamicResource SukiLowText}" FontSize="13" FontWeight="DemiBold" />
+                    <Slider Minimum="0" Maximum="100" Value="{Binding Spread}" 
+                            TickFrequency="1" IsSnapToTickEnabled="True" Margin="-8,0" Classes="Light" />
+                </StackPanel>
+            </StackPanel>
+        </Expander>
+    </Panel>
+</UserControl>

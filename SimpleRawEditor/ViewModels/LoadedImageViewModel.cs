@@ -1,6 +1,8 @@
+using System;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using SimpleRawEditor.Models;
 
 namespace SimpleRawEditor.ViewModels;
@@ -25,4 +27,12 @@ public partial class LoadedImageViewModel : ObservableObject
     public IBrush BorderBrush => IsSelected
         ? Brushes.Orange
         : Brushes.Transparent;
+
+    public event EventHandler? Selected;
+
+    [RelayCommand]
+    public void Select()
+    {
+        Selected?.Invoke(this, EventArgs.Empty);
+    }
 }

@@ -1,252 +1,52 @@
 <suki:SukiWindow xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="using:SimpleRawEditor.ViewModels"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:suki="https://github.com/kikipoulet/SukiUI"
-        xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
-        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
-        x:Class="SimpleRawEditor.MainWindow"
-        x:DataType="vm:MainWindowViewModel"
-        Title="Simple RAW Editor">
+         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+         xmlns:vm="using:SimpleRawEditor.ViewModels.Main"
+         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+         xmlns:suki="https://github.com/kikipoulet/SukiUI"
+         xmlns:views="using:SimpleRawEditor.Views"
+         xmlns:editor="using:SimpleRawEditor.Views.Editor"
+         mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
+         x:Class="SimpleRawEditor.MainWindow"
+         x:DataType="vm:MainViewModel"
+         Title="Simple RAW Editor">
 
   <Design.DataContext>
-    <vm:MainWindowViewModel />
+    <vm:MainViewModel />
   </Design.DataContext>
 
   <Grid RowDefinitions="Auto,*,Auto">
     <!-- Barre d'outils -->
     <suki:GlassCard CornerRadius="0" Padding="0" Grid.Row="0" >
       <Border Padding="10,5" BorderBrush="{DynamicResource SukiBorderBrush}"  BorderThickness="0,0,0,1">
-      <StackPanel Orientation="Horizontal" Spacing="10">
-        <Button Classes="Flat" Command="{Binding OpenImagesCommand}" Padding="10,5">
-          <StackPanel Orientation="Horizontal" Spacing="5">
-            <PathIcon Data="M20,6A2,2 0 0,1 22,8V18A2,2 0 0,1 20,20H4C2.89,20 2,19.1 2,18V6C2,4.89 2.89,4 4,4H10L12,6H20M19.25,13H16V9H14V13H10.75L15,17.25L19.25,13Z" />
-            <TextBlock Text="Open Images" VerticalAlignment="Center" />
-          </StackPanel>
-        </Button>
-        <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center" Foreground="White" Margin="20,0,0,0" />
-        <ProgressBar Height="15" VerticalAlignment="Center" IsVisible="{Binding IsLoading}" IsIndeterminate="True" Width="120" Margin="10,0,0,0" />
-      </StackPanel>
-        </Border>
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <Button Classes="Flat" Command="{Binding OpenImagesCommand}" Padding="10,5">
+            <StackPanel Orientation="Horizontal" Spacing="5">
+              <PathIcon Data="M20,6A2,2 0 0,1 22,8V18A2,2 0 0,1 20,20H4C2.89,20 2,19.1 2,18V6C2,4.89 2.89,4 4,4H10L12,6H20M19.25,13H16V9H14V13H10.75L15,17.25L19.25,13Z" />
+              <TextBlock Text="Open Images" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+          <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center" Foreground="White" Margin="20,0,0,0" />
+          <ProgressBar Height="15" VerticalAlignment="Center" IsVisible="{Binding IsLoading}" IsIndeterminate="True" Width="120" Margin="10,0,0,0" />
+        </StackPanel>
+      </Border>
     </suki:GlassCard>
 
     <!-- Zone principale -->
     <Grid Grid.Row="1" ColumnDefinitions="*,350">
       <!-- Image principale -->
-      <Border Grid.Column="0"  Padding="10">
-        <Image Source="{Binding DisplayedImage}" 
-               Stretch="Uniform" 
-               HorizontalAlignment="Center" 
+      <Border Grid.Column="0" Padding="10">
+        <Image Source="{Binding Editor.DisplayedImage}"
+               Stretch="Uniform"
+               HorizontalAlignment="Center"
                VerticalAlignment="Center" />
       </Border>
 
       <!-- Panneau d'ajustements -->
-      <suki:GlassCard  CornerRadius="0" Grid.Column="1"  Padding="0">
-        <Border BorderBrush="{DynamicResource SukiBorderBrush}"  BorderThickness="1,0,0,0">
-        <ScrollViewer VerticalScrollBarVisibility="Auto">
-          <StackPanel>
-            <!-- Ajustements de base - toujours visibles -->
-            <Panel>
-            <Expander  Margin="0,2,0,0" IsExpanded="True" >
-              <Expander.Header>
-                <TextBlock Text="Basique" FontWeight="SemiBold" Foreground="White" FontSize="14" />
-              </Expander.Header>
-              <StackPanel Spacing="10" Margin="0,10,0,0">
-                <!-- Exposition -->
-                <StackPanel Spacing="-2" Margin="20,0">
-                  <TextBlock Foreground="{DynamicResource SukiLowText}"  FontSize="13" FontWeight="DemiBold" Text="Exposure"></TextBlock>
-                  <Slider Classes="Light" Margin="-8,0" Minimum="-100" Maximum="100" Value="{Binding CurrentAdjustments.Exposure}" 
-                          TickFrequency="1" IsSnapToTickEnabled="True"
-                          PointerPressed="OnSliderPointerPressed"
-                          PointerReleased="OnSliderPointerReleased" />
-                </StackPanel>
-
-                <!-- Hautes lumières -->
-                <StackPanel Spacing="-2" Margin="20,0">
-                  <TextBlock Foreground="{DynamicResource SukiLowText}"  FontSize="13" FontWeight="DemiBold" Text="Highlights"></TextBlock>
-                  <Slider Margin="-8,0" Minimum="-100" Maximum="100" Value="{Binding CurrentAdjustments.Highlights}" 
-                          TickFrequency="1" IsSnapToTickEnabled="True"
-                          PointerPressed="OnSliderPointerPressed"
-                          PointerReleased="OnSliderPointerReleased" />
-                </StackPanel>
-
-                <!-- Contraste -->
-                <StackPanel Spacing="-2" Margin="20,0">
-                  <TextBlock Foreground="{DynamicResource SukiLowText}"  FontSize="13" FontWeight="DemiBold" Text="Contrast"></TextBlock>
-                  <Slider Margin="-8,0" Minimum="-100" Maximum="100" Value="{Binding CurrentAdjustments.Contrast}" 
-                          TickFrequency="1" IsSnapToTickEnabled="True"
-                          PointerPressed="OnSliderPointerPressed"
-                          PointerReleased="OnSliderPointerReleased" />
-                </StackPanel>
-                
-
-                <!-- Ombres -->
-                <StackPanel Spacing="-2" Margin="20,0,20,20">
-                  <TextBlock Foreground="{DynamicResource SukiLowText}"  FontSize="13" FontWeight="DemiBold" Text="Shadows"></TextBlock>
-                  <Slider Margin="-8,0" Minimum="-100" Maximum="100" Value="{Binding CurrentAdjustments.Shadows}" 
-                          TickFrequency="1" IsSnapToTickEnabled="True"
-                          PointerPressed="OnSliderPointerPressed"
-                          PointerReleased="OnSliderPointerReleased" />
-                </StackPanel>
-
-              </StackPanel>
-            </Expander>
-              <TextBlock FontSize="18" Margin="17,15" Classes="h3" Text="Development"></TextBlock>
-            </Panel>
-
-            <Separator Background="#555555" Margin="0,5,0,5" />
-
-            <!-- Débruitage - activable -->
-            <Panel >
-              <CheckBox VerticalAlignment="Top" IsChecked="{Binding CurrentAdjustments.IsDenoiseEnabled}" 
-                        Content="Débruitage" 
-                        Foreground="White"  FontFamily="{DynamicResource DefaultFontFamily}"
-                        FontSize="18" Margin="17,13"
-                        FontWeight="SemiBold" />
-              <Expander IsExpanded="{Binding CurrentAdjustments.IsDenoiseExpanded}" 
-                        IsVisible="{Binding CurrentAdjustments.IsDenoiseEnabled}"
-                        Background="Transparent" Margin="0,2,0,0"
-                        Padding="10,7,0,7">
-                <StackPanel Margin="10,15,10,15" Spacing="10">
-                  <DockPanel >
-                    <avalonia:MaterialIcon Kind="CircleOpacity" DockPanel.Dock="Left" Margin="15,0,5,0" VerticalAlignment="Center" Height="16" Width="16" Foreground="{DynamicResource SukiLowText}" ></avalonia:MaterialIcon>
-                    <avalonia:MaterialIcon Kind="CircleOpacity" DockPanel.Dock="Right" Margin="5,0,15,0" VerticalAlignment="Center" Height="12" Width="12" Foreground="{DynamicResource SukiLowText}" ></avalonia:MaterialIcon>
-                    <Slider Minimum="0" Maximum="100" Value="{Binding CurrentAdjustments.DenoiseAmount}" 
-                            TickFrequency="1" IsSnapToTickEnabled="True"
-                            PointerPressed="OnSliderPointerPressed"
-                            PointerReleased="OnSliderPointerReleased" />
-                  </DockPanel>
-                </StackPanel>
-              </Expander>
-            </Panel>
-
-            <Separator Background="#555555" Margin="0,5,0,5" />
-
-            <!-- LUT - activable -->
-            <Panel >
-             
-              
-              <Expander IsExpanded="{Binding CurrentAdjustments.IsLutExpanded}" 
-                        IsVisible="{Binding CurrentAdjustments.IsLutEnabled}"
-                        Background="Transparent" Margin="0,2,0,0"
-                        Padding="10,7,0,7">
-                <StackPanel Margin="10,15" Spacing="10">
-                  <Grid ColumnDefinitions="*,Auto">
-                    <ComboBox ItemsSource="{Binding AvailableLuts}"
-                              SelectedItem="{Binding SelectedLutName}"
-                              PlaceholderText="Sélectionner une LUT..."
-                              HorizontalAlignment="Stretch" />
-                    <Button Grid.Column="1" 
-                            Command="{Binding LoadExternalLutCommand}" 
-                            Width="32" Height="32" Padding="0,0"
-                            Margin="5,0,0,0"
-                            ToolTip.Tip="Charger un fichier LUT externe...">
-                      <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="..." FontWeight="Bold" />
-                    </Button>
-                  </Grid>
-                  
-                  
-                  <StackPanel Margin="0,10,0,0" Spacing="5" IsVisible="{Binding CurrentAdjustments.HasLut}">
-                    <DockPanel >
-                      <avalonia:MaterialIcon Opacity="0.5" Kind="ImageFilterCenterFocusStrongOutline" DockPanel.Dock="Left" Margin="15,0,5,0" VerticalAlignment="Center" Height="16" Width="16" Foreground="{DynamicResource SukiLowText}" ></avalonia:MaterialIcon>
-                      <avalonia:MaterialIcon Kind="ImageFilterCenterFocusStrong" DockPanel.Dock="Right" Margin="5,0,15,0" VerticalAlignment="Center" Height="16" Width="16" Foreground="{DynamicResource SukiLowText}" ></avalonia:MaterialIcon>
-                      <Slider Minimum="-100" Maximum="100" Value="{Binding CurrentAdjustments.LutIntensity}" 
-                              TickFrequency="1" IsSnapToTickEnabled="True"
-                              PointerPressed="OnSliderPointerPressed"
-                              PointerReleased="OnSliderPointerReleased" />
-                    </DockPanel>
-               
-                  </StackPanel>
-                </StackPanel>
-              </Expander>
-              
-              <CheckBox VerticalAlignment="Top" IsChecked="{Binding CurrentAdjustments.IsLutEnabled}" 
-                        Content="Lut" 
-                        Foreground="White"  FontFamily="{DynamicResource DefaultFontFamily}"
-                        FontSize="18" Margin="17,13"
-                        FontWeight="SemiBold" />
-            </Panel>
-
-            <Separator Background="#555555" Margin="0,5,0,5" />
-
-            <!-- Vignetage - activable -->
-            <Panel>
-              
-              <CheckBox VerticalAlignment="Top" IsChecked="{Binding CurrentAdjustments.IsVignetteEnabled}" 
-                        Content="Vignette" 
-                        Foreground="White"  FontFamily="{DynamicResource DefaultFontFamily}"
-                        FontSize="18" Margin="17,13"
-                        FontWeight="SemiBold" />
-              <Expander IsExpanded="{Binding CurrentAdjustments.IsVignetteExpanded}" 
-                        IsVisible="{Binding CurrentAdjustments.IsVignetteEnabled}"
-                        Background="Transparent" Margin="0,2,0,0"
-                        Padding="10,7,0,7">
-                <StackPanel Margin="0,10" Spacing="10">
-                  
-                  <DockPanel >
-                    <avalonia:MaterialIcon Opacity="0.5" Kind="Circle" DockPanel.Dock="Left" Margin="15,0,5,0" VerticalAlignment="Center" Height="16" Width="16" Foreground="{DynamicResource SukiLowText}" ></avalonia:MaterialIcon>
-                    <avalonia:MaterialIcon Kind="Circle" DockPanel.Dock="Right" Margin="5,0,15,0" VerticalAlignment="Center" Height="16" Width="16" Foreground="{DynamicResource SukiLowText}" ></avalonia:MaterialIcon>
-                    <Slider Minimum="-100" Maximum="100" Value="{Binding CurrentAdjustments.VignetteIntensity}" 
-                            TickFrequency="1" IsSnapToTickEnabled="True"
-                            PointerPressed="OnSliderPointerPressed"
-                            PointerReleased="OnSliderPointerReleased" />
-                  </DockPanel>
-
-                  <DockPanel >
-                    <avalonia:MaterialIcon  Kind="BorderRadius" DockPanel.Dock="Left" Margin="15,0,5,0" VerticalAlignment="Center" Height="12" Width="16" Foreground="{DynamicResource SukiLowText}" ></avalonia:MaterialIcon>
-                    <avalonia:MaterialIcon Kind="BorderRadius" DockPanel.Dock="Right" Margin="5,0,15,0" VerticalAlignment="Center" Height="16" Width="16" Foreground="{DynamicResource SukiLowText}" ></avalonia:MaterialIcon>
-                    <Slider Minimum="0" Maximum="100" Value="{Binding CurrentAdjustments.VignetteSpread}" 
-                            TickFrequency="1" IsSnapToTickEnabled="True"
-                            PointerPressed="OnSliderPointerPressed"
-                            PointerReleased="OnSliderPointerReleased" />
-                  </DockPanel>
-                  
-                </StackPanel>
-              </Expander>
-            </Panel>
-
-           
-          </StackPanel>
-        </ScrollViewer>
-                    
-        </Border>
-      </suki:GlassCard>
+      <editor:EditorView Grid.Column="1" DataContext="{Binding Editor}" />
     </Grid>
 
     <!-- Liste des thumbnails -->
-    <suki:GlassCard CornerRadius="0" Grid.Row="2" Padding="0" >
-      <Border BorderBrush="{DynamicResource SukiBorderBrush}" Padding="10" BorderThickness="0,1,0,0">
-      <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-        <ItemsControl ItemsSource="{Binding LoadedImages}">
-          <ItemsControl.ItemsPanel>
-            <ItemsPanelTemplate>
-              <StackPanel Orientation="Horizontal" Spacing="10" />
-            </ItemsPanelTemplate>
-          </ItemsControl.ItemsPanel>
-          <ItemsControl.ItemTemplate>
-            <DataTemplate DataType="vm:LoadedImageViewModel">
-              <suki:GlassCard CornerRadius="13" Width="130" Height="130" 
-                      Padding="5"
-                      PointerPressed="OnThumbnailPointerPressed"
-                      Tag="{Binding}">
-                <Grid RowDefinitions="*,Auto">
-                  <Border  Margin="2"  CornerRadius="8" Grid.Row="0"  ClipToBounds="True">
-                  <Image Source="{Binding Thumbnail}" Stretch="UniformToFill"/>
-                  </Border>
-                  <TextBlock Grid.Row="1" Text="{Binding FileName}" 
-                             FontSize="12" 
-                             TextTrimming="CharacterEllipsis"
-                             Foreground="White"
-                             HorizontalAlignment="Center"
-                             Margin="2,3,2,1" />
-                </Grid>
-              </suki:GlassCard>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
-      </ScrollViewer>
-        </Border>
-    </suki:GlassCard>
+    <views:ThumbnailListView Grid.Row="2" DataContext="{Binding ThumbnailList}" />
   </Grid>
 </suki:SukiWindow>

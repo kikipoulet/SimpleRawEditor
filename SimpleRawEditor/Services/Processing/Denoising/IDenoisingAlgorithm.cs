@@ -1,4 +1,4 @@
-namespace SimpleRawEditor.Services.Denoising;
+namespace SimpleRawEditor.Services.Processing.Denoising;
 
 public interface IDenoisingAlgorithm
 {

@@ -1,0 +1,39 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:SimpleRawEditor.ViewModels"
+             xmlns:suki="https://github.com/kikipoulet/SukiUI"
+             mc:Ignorable="d" d:DesignWidth="130" d:DesignHeight="130"
+             x:Class="SimpleRawEditor.Controls.ThumbnailCard"
+             x:DataType="vm:LoadedImageViewModel">
+
+    <Button Command="{Binding SelectCommand}"
+            Padding="0"
+            Background="Transparent"
+            BorderBrush="Transparent"
+            BorderThickness="0"
+            Cursor="Hand">
+        <suki:GlassCard CornerRadius="13"
+                        Width="130"
+                        Height="130"
+                        Padding="5">
+            <Grid RowDefinitions="*,Auto">
+                <Border Margin="2"
+                        CornerRadius="8"
+                        Grid.Row="0"
+                        ClipToBounds="True">
+                    <Image Source="{Binding Thumbnail}"
+                           Stretch="UniformToFill" />
+                </Border>
+                <TextBlock Grid.Row="1"
+                           Text="{Binding FileName}"
+                           FontSize="12"
+                           TextTrimming="CharacterEllipsis"
+                           Foreground="White"
+                           HorizontalAlignment="Center"
+                           Margin="2,3,2,1" />
+            </Grid>
+        </suki:GlassCard>
+    </Button>
+</UserControl>

@@ -2,7 +2,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
-namespace SimpleRawEditor.Services.Denoising;
+namespace SimpleRawEditor.Services.Processing.Denoising;
 
 public class NlmDenoising : IDenoisingAlgorithm
 {

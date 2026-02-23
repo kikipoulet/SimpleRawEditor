@@ -6,9 +6,8 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Sdcb.LibRaw;
 using SimpleRawEditor.Models;
-using SimpleRawEditor.Services.Interfaces;
 
-namespace SimpleRawEditor.Services;
+namespace SimpleRawEditor.Services.Core;
 
 public class RawImageService : IRawImageService
 {

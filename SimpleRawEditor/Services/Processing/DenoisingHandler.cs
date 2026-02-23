@@ -1,6 +1,6 @@
 using System;
 using System.Threading.Tasks;
-using SimpleRawEditor.Services.Denoising;
+using SimpleRawEditor.Services.Processing.Denoising;
 
 namespace SimpleRawEditor.Services.Processing;
 

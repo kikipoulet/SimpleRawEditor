@@ -3,10 +3,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
 using SimpleRawEditor.Models;
-using SimpleRawEditor.Services.Interfaces;
-using SimpleRawEditor.Services.Processing;
+using SimpleRawEditor.Services.Core;
 
-namespace SimpleRawEditor.Services;
+namespace SimpleRawEditor.Services.Processing;
 
 public class DebouncedImageProcessor : IImageProcessor
 {

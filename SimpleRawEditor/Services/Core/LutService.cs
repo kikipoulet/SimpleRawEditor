@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using SimpleRawEditor.Models;
-using SimpleRawEditor.Services.Interfaces;
+using SimpleRawEditor.Services.Parsing;
 
-namespace SimpleRawEditor.Services;
+namespace SimpleRawEditor.Services.Core;
 
 public class LutService : ILutService
 {

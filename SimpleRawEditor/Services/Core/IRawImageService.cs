@@ -2,7 +2,7 @@ using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
 using SimpleRawEditor.Models;
 
-namespace SimpleRawEditor.Services.Interfaces;
+namespace SimpleRawEditor.Services.Core;
 
 public interface IRawImageService
 {

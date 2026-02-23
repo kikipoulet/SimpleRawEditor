@@ -3,7 +3,7 @@ using System.Globalization;
 using System.IO;
 using SimpleRawEditor.Models;
 
-namespace SimpleRawEditor.Services;
+namespace SimpleRawEditor.Services.Parsing;
 
 public static class CubeLutParser
 {
