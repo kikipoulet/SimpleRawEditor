@@ -1,14 +1,48 @@
 using System;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using Avalonia.Controls;
+using CommunityToolkit.Mvvm.ComponentModel;
+using SimpleRawEditor.Services;
+using SimpleRawEditor.Views.Adjustments;
 
-namespace SimpleRawEditor.Services.Processing.Denoising;
+namespace SimpleRawEditor.ViewModels.Editor;
 
-public class BilateralFilter : IDenoisingAlgorithm
+public partial class DenoiseAdjustment : AdjustmentStep
 {
-    public string Name => "Bilateral Filter";
+    private readonly ImageProcessor? _processor;
+    
+    public override string Name => "Denoise";
+    public override UserControl View => new DenoiseView { DataContext = this };
 
-    public byte[]? Process(byte[] sourcePixels, int width, int height, int stride, float strength)
+    [ObservableProperty] 
+    private double _amount;
+
+    public DenoiseAdjustment(ImageProcessor? processor = null)
+    {
+        _processor = processor;
+    }
+
+    public override void Apply(byte[] pixels, int width, int height, int stride)
+    {
+        if (!IsEnabled || Amount < 0.001) return;
+
+        float strength = (float)(Amount * 2.5);
+
+        byte[]? denoised = ApplyBilateralFilter(pixels, width, height, stride, strength);
+
+        if (denoised != null)
+        {
+            float blend = (float)(Amount / 100.0);
+            float invBlend = 1.0f - blend;
+
+            Parallel.For(0, pixels.Length, i =>
+            {
+                pixels[i] = (byte)(pixels[i] * invBlend + denoised[i] * blend);
+            });
+        }
+    }
+
+    private static byte[]? ApplyBilateralFilter(byte[] sourcePixels, int width, int height, int stride, float strength)
     {
         if (strength < 0.5f) return null;
         if (width < 8 || height < 8) return null;
@@ -19,7 +53,7 @@ public class BilateralFilter : IDenoisingAlgorithm
 
         int kernelSize = radius * 2 + 1;
         float[] spatialWeights = new float[kernelSize * kernelSize];
-        
+
         for (int ky = -radius, idx = 0; ky <= radius; ky++)
         {
             for (int kx = -radius; kx <= radius; kx++, idx++)
@@ -35,7 +69,7 @@ public class BilateralFilter : IDenoisingAlgorithm
         Parallel.For(0, height, y =>
         {
             int rowStart = y * stride;
-            
+
             for (int x = 0; x < width; x++)
             {
                 int centerIdx = rowStart + x * 4;
@@ -82,9 +116,9 @@ public class BilateralFilter : IDenoisingAlgorithm
                 }
 
                 float invWeight = 1.0f / weightSum;
-                result[centerIdx + 2] = ClampByte(sumR * invWeight);
-                result[centerIdx + 1] = ClampByte(sumG * invWeight);
-                result[centerIdx] = ClampByte(sumB * invWeight);
+                result[centerIdx + 2] = ImageProcessor.ClampByte(sumR * invWeight);
+                result[centerIdx + 1] = ImageProcessor.ClampByte(sumG * invWeight);
+                result[centerIdx] = ImageProcessor.ClampByte(sumB * invWeight);
                 result[centerIdx + 3] = sourcePixels[centerIdx + 3];
             }
         });
@@ -92,11 +126,5 @@ public class BilateralFilter : IDenoisingAlgorithm
         return result;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static byte ClampByte(float value)
-    {
-        if (value >= 255f) return 255;
-        if (value <= 0f) return 0;
-        return (byte)(value + 0.5f);
-    }
+    partial void OnAmountChanged(double _) => NotifyChanged();
 }

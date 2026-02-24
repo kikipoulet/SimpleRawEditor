@@ -5,29 +5,20 @@ using Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SimpleRawEditor.Models;
-using SimpleRawEditor.Services.Core;
-using SimpleRawEditor.Services.Processing;
+using SimpleRawEditor.Services;
 using SimpleRawEditor.Views.Adjustments;
 
-namespace SimpleRawEditor.ViewModels.Editor.Adjustments;
+namespace SimpleRawEditor.ViewModels.Editor;
 
-public partial class LutViewModel : ObservableObject, IAdjustmentStep
+public partial class LutAdjustment : AdjustmentStep
 {
-    private readonly ILutService _lutService;
+    private readonly LutService _lutService;
 
-    public string Name => "LUT";
-    public UserControl View => new LutView { DataContext = this };
-    public event Action? RemoveRequested;
-
-    [ObservableProperty]
-    private bool _isExpanded = true;
-
-    [ObservableProperty]
-    private bool _isEnabled;
+    public override string Name => "LUT";
+    public override UserControl View => new LutView { DataContext = this };
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasLut))]
-    [NotifyPropertyChangedFor(nameof(CanAdjust))]
     private CubeLut? _activeLut;
 
     [ObservableProperty]
@@ -46,11 +37,8 @@ public partial class LutViewModel : ObservableObject, IAdjustmentStep
     private string _statusMessage = string.Empty;
 
     public bool HasLut => ActiveLut != null;
-    public bool CanAdjust => IsEnabled;
 
-    public void Remove() => RemoveRequested?.Invoke();
-
-    public LutViewModel(ILutService lutService)
+    public LutAdjustment(LutService lutService)
     {
         _lutService = lutService;
         LoadAvailablePresets();
@@ -65,19 +53,15 @@ public partial class LutViewModel : ObservableObject, IAdjustmentStep
         }
     }
 
-    public void Apply(byte[] pixels, int width, int height, int stride)
+    public override void Apply(byte[] pixels, int width, int height, int stride)
     {
         if (!IsEnabled || ActiveLut == null || Intensity < 0.001) return;
 
         float intensity = (float)(Intensity / 100.0);
         const float inv255 = 1.0f / 255.0f;
-
-        var precomputed = new PrecomputedAdjustments(
-            0, 0, 0, 0, 0, 0, 0,
-            false, false, false, false,
-            false, false,
-            ActiveLut, intensity, true
-        );
+        var lut = ActiveLut;
+        int size = lut.Size;
+        float[] data = lut.Data;
 
         for (int y = 0; y < height; y++)
         {
@@ -85,22 +69,41 @@ public partial class LutViewModel : ObservableObject, IAdjustmentStep
             {
                 int index = (y * stride) + (x * 4);
 
-                float r = pixels[index] * inv255;
+                float r = pixels[index + 2] * inv255;
                 float g = pixels[index + 1] * inv255;
-                float b = pixels[index + 2] * inv255;
+                float b = pixels[index] * inv255;
 
-                LutApplicationHandler.ApplyLutInline(ref r, ref g, ref b, in precomputed);
+                r = ImageProcessor.Clamp01(r);
+                g = ImageProcessor.Clamp01(g);
+                b = ImageProcessor.Clamp01(b);
 
-                pixels[index] = ToneAdjustmentHandler.ClampByte(r * 255.0f);
-                pixels[index + 1] = ToneAdjustmentHandler.ClampByte(g * 255.0f);
-                pixels[index + 2] = ToneAdjustmentHandler.ClampByte(b * 255.0f);
+                var (lutR, lutG, lutB) = SampleLutNearest(data, size, r, g, b);
+
+                float oneMinus = 1.0f - intensity;
+                r = r * oneMinus + lutR * intensity;
+                g = g * oneMinus + lutG * intensity;
+                b = b * oneMinus + lutB * intensity;
+
+                pixels[index] = ImageProcessor.ClampByte(b * 255.0f);
+                pixels[index + 1] = ImageProcessor.ClampByte(g * 255.0f);
+                pixels[index + 2] = ImageProcessor.ClampByte(r * 255.0f);
             }
         }
     }
 
-    partial void OnIsEnabledChanged(bool value)
+    private static (float r, float g, float b) SampleLutNearest(float[] data, int size, float r, float g, float b)
     {
-        IsExpanded = value;
+        int rIdx = Math.Clamp((int)(r * (size - 1)), 0, size - 1);
+        int gIdx = Math.Clamp((int)(g * (size - 1)), 0, size - 1);
+        int bIdx = Math.Clamp((int)(b * (size - 1)), 0, size - 1);
+
+        int idx = (bIdx * size * size + gIdx * size + rIdx) * 3;
+
+        float outR = Math.Clamp(data[idx], 0f, 1f);
+        float outG = Math.Clamp(data[idx + 1], 0f, 1f);
+        float outB = Math.Clamp(data[idx + 2], 0f, 1f);
+
+        return (outR, outG, outB);
     }
 
     partial void OnSelectedPresetNameChanged(string? value)
@@ -116,19 +119,14 @@ public partial class LutViewModel : ObservableObject, IAdjustmentStep
                 LutFileName = value;
                 Intensity = 100;
                 IsEnabled = true;
-                StatusMessage = $"LUT chargée: {value} (taille: {lut.Size})";
+                StatusMessage = $"LUT: {value} (size: {lut.Size})";
+                NotifyChanged();
             }
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Erreur chargement LUT: {ex.Message}";
+            StatusMessage = $"Error: {ex.Message}";
         }
-    }
-
-    [RelayCommand]
-    public Task LoadExternalLutAsync()
-    {
-        return Task.CompletedTask;
     }
 
     [RelayCommand]
@@ -139,15 +137,9 @@ public partial class LutViewModel : ObservableObject, IAdjustmentStep
         Intensity = 100;
         SelectedPresetName = null;
         IsEnabled = false;
-        StatusMessage = "LUT supprimée";
+        StatusMessage = "LUT cleared";
+        NotifyChanged();
     }
 
-    [RelayCommand]
-    public void Toggle() => IsEnabled = !IsEnabled;
-
-    [RelayCommand]
-    public void Expand() => IsExpanded = true;
-
-    [RelayCommand]
-    public void Collapse() => IsExpanded = false;
+    partial void OnIntensityChanged(double _) => NotifyChanged();
 }

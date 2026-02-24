@@ -26,6 +26,7 @@
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
         <PackageReference Include="SukiUI" Version="6.0.4-nightly20260219" />
+        <PackageReference Include="System.Reactive" Version="6.0.1" />
     </ItemGroup>
 
     <ItemGroup>

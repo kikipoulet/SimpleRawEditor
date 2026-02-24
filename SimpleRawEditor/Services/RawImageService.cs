@@ -9,9 +9,9 @@ using Sdcb.LibRaw;
 using Sdcb.LibRaw.Natives;
 using SimpleRawEditor.Models;
 
-namespace SimpleRawEditor.Services.Core;
+namespace SimpleRawEditor.Services;
 
-public class RawImageService : IRawImageService
+public class RawImageService
 {
     public async Task<RawImageData?> LoadRawImageAsync(string filePath)
     {
@@ -24,7 +24,6 @@ public class RawImageService : IRawImageService
                 LibRawImageOtherParams otherParams = context.ImageOtherParams;
                 
                 context.Unpack();
-
                 context.DcrawProcess(c =>
                 {
                     c.UseCameraWb = true;
@@ -41,16 +40,14 @@ public class RawImageService : IRawImageService
                     OriginalBitmap = bitmap,
                     Width = processedImage.Width,
                     Height = processedImage.Height,
-                    Metadata = new ImageMetadata()
+                    Metadata = new ImageMetadata
                     {
-                        Model = imageParams.Make +" " +imageParams.Model,
+                        Model = imageParams.Make + " " + imageParams.Model,
                         IsoSpeed = otherParams.IsoSpeed,
-                        Shutter = 1/  otherParams.Shutter,
+                        Shutter = 1 / otherParams.Shutter,
                         Aperture = otherParams.Aperture,
                         Lens = context.LensInfo.Lens,
-                        Date = DateTimeOffset
-                            .FromUnixTimeSeconds(otherParams.Timestamp)
-                            .UtcDateTime,
+                        Date = DateTimeOffset.FromUnixTimeSeconds(otherParams.Timestamp).UtcDateTime,
                         Width = processedImage.Width,
                         Height = processedImage.Height,
                     }
@@ -111,9 +108,7 @@ public class RawImageService : IRawImageService
             AlphaFormat.Opaque);
 
         using var buffer = writeableBitmap.Lock();
-
         int destStride = buffer.RowBytes;
-
         byte* destPtr = (byte*)buffer.Address;
 
         for (int y = 0; y < height; y++)
@@ -123,13 +118,9 @@ public class RawImageService : IRawImageService
                 int srcIndex = y * srcStride + x * 3;
                 int destIndex = y * destStride + x * 4;
 
-                byte b = srcData[srcIndex];
-                byte g = srcData[srcIndex + 1];
-                byte r = srcData[srcIndex + 2];
-
-                destPtr[destIndex] = b;
-                destPtr[destIndex + 1] = g;
-                destPtr[destIndex + 2] = r;
+                destPtr[destIndex] = srcData[srcIndex];
+                destPtr[destIndex + 1] = srcData[srcIndex + 1];
+                destPtr[destIndex + 2] = srcData[srcIndex + 2];
                 destPtr[destIndex + 3] = 255;
             }
         }

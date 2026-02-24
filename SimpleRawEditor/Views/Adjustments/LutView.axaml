@@ -2,10 +2,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="using:SimpleRawEditor.ViewModels.Editor.Adjustments"
-             mc:Ignorable="d" d:DesignWidth="300"
-             x:Class="SimpleRawEditor.Views.Adjustments.LutView"
-             x:DataType="vm:LutViewModel">
+xmlns:vm="using:SimpleRawEditor.ViewModels.Editor"
+mc:Ignorable="d" d:DesignWidth="300"
+x:Class="SimpleRawEditor.Views.Adjustments.LutView"
+x:DataType="vm:LutAdjustment">
 
     <Panel>
         <Expander IsExpanded="{Binding IsExpanded}"
@@ -20,7 +20,7 @@
                               PlaceholderText="Sélectionner une LUT..."
                               HorizontalAlignment="Stretch" />
                     <Button Grid.Column="1"
-                            Command="{Binding LoadExternalLutCommand}"
+                        
                             Width="32"
                             Height="32"
                             Padding="0,0"

@@ -12,7 +12,7 @@
         <Border BorderBrush="{DynamicResource SukiBorderBrush}" BorderThickness="1,0,0,0">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel>
-                    <ItemsControl ItemsSource="{Binding ActiveAdjustments}">
+                    <ItemsControl ItemsSource="{Binding Adjustments}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <StackPanel />

@@ -3,27 +3,27 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SimpleRawEditor.Models;
-using SimpleRawEditor.Services.Core;
-using SimpleRawEditor.Services.Processing;
+using SimpleRawEditor.Services;
 using SimpleRawEditor.ViewModels.Editor;
-using SimpleRawEditor.ViewModels.Editor.Adjustments;
 using SimpleRawEditor.ViewModels.Main.Thumbnails;
 
 namespace SimpleRawEditor.ViewModels.Main;
 
 public partial class MainViewModel : ObservableObject
 {
-    private readonly IRawImageService _rawImageService;
-    private readonly IImageProcessor _imageProcessor;
-    private readonly ILutService _lutService;
-    [ObservableProperty] private RawImageData? currentRawImage;
+    private readonly RawImageService _rawService;
+    private readonly LutService _lutService;
+    private readonly ImageProcessor _processor;
     private bool _isDraggingSlider;
-    private ImageAdjustments? _currentAdjustments;
+
+    [ObservableProperty]
+    private RawImageData? _currentRawImage;
 
     [ObservableProperty]
     private ThumbnailListViewModel _thumbnailList = new();
@@ -35,36 +35,38 @@ public partial class MainViewModel : ObservableObject
     private ObservableCollection<string> _availableLuts = new();
 
     [ObservableProperty]
-    private string _statusMessage = "Prêt";
+    private string _statusMessage = "Ready";
 
     [ObservableProperty]
     private bool _isLoading;
 
-    public MainViewModel() : this(new RawImageService(), new DebouncedImageProcessor(), new LutService())
+    public MainViewModel()
     {
-    }
-
-    public MainViewModel(IRawImageService rawImageService, IImageProcessor imageProcessor, ILutService lutService)
-    {
-        _rawImageService = rawImageService;
-        _imageProcessor = imageProcessor;
-        _lutService = lutService;
-
-        Editor = new EditorViewModel(new ImageAdjustments(), _lutService);
+        _rawService = new RawImageService();
+        _lutService = new LutService();
+        _processor = new ImageProcessor();
+        
+        _editor = new EditorViewModel(_lutService);
 
         LoadAvailableLuts();
 
-        _imageProcessor.ImageProcessed += (_, image) =>
+        _processor.ImageProcessed += image =>
         {
-            Editor.UpdateDisplayedImage(image);
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                _editor.UpdateDisplayedImage(image);
+            });
         };
 
-        _imageProcessor.ProcessingError += (_, error) =>
+        _processor.ProcessingError += error =>
         {
-            StatusMessage = $"Erreur: {error}";
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                StatusMessage = $"Error: {error}";
+            });
         };
 
-        ThumbnailList.ThumbnailSelected += async (s, image) =>
+        _thumbnailList.ThumbnailSelected += async (_, image) =>
         {
             if (image != null)
             {
@@ -72,12 +74,9 @@ public partial class MainViewModel : ObservableObject
             }
         };
 
-        Editor.PropertyChanged += (s, e) =>
+        _editor.AdjustmentsChanged += () =>
         {
-            if (e.PropertyName == nameof(Editor.DisplayedImage))
-            {
-                Editor.CurrentImage = Editor.DisplayedImage;
-            }
+            RequestProcessing();
         };
     }
 
@@ -90,6 +89,15 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+    private void RequestProcessing()
+    {
+        if (CurrentRawImage?.OriginalBitmap is WriteableBitmap wb)
+        {
+            _processor.SetSource(wb);
+            _processor.RequestProcessing(_editor.GetAdjustmentSteps(), _isDraggingSlider);
+        }
+    }
+
     [RelayCommand]
     private async Task OpenImagesAsync()
     {
@@ -98,15 +106,15 @@ public partial class MainViewModel : ObservableObject
 
         var options = new FilePickerOpenOptions
         {
-            Title = "Sélectionner des images RAW",
+            Title = "Select RAW images",
             AllowMultiple = true,
             FileTypeFilter = new[]
             {
-                new FilePickerFileType("Images RAW")
+                new FilePickerFileType("RAW Images")
                 {
                     Patterns = new[] { "*.raw", "*.cr2", "*.cr3", "*.nef", "*.arw", "*.dng", "*.raf", "*.orf", "*.rw2", "*.pef" }
                 },
-                new FilePickerFileType("Tous les fichiers")
+                new FilePickerFileType("All Files")
                 {
                     Patterns = new[] { "*" }
                 }
@@ -118,7 +126,7 @@ public partial class MainViewModel : ObservableObject
         if (result.Count > 0)
         {
             IsLoading = true;
-            StatusMessage = $"Chargement de {result.Count} image(s)...";
+            StatusMessage = $"Loading {result.Count} image(s)...";
 
             foreach (var file in result)
             {
@@ -126,7 +134,7 @@ public partial class MainViewModel : ObservableObject
             }
 
             IsLoading = false;
-            StatusMessage = $"{ThumbnailList.Thumbnails.Count} image(s) chargée(s)";
+            StatusMessage = $"{ThumbnailList.Thumbnails.Count} image(s) loaded";
         }
     }
 
@@ -134,7 +142,7 @@ public partial class MainViewModel : ObservableObject
     {
         try
         {
-            var thumbnail = await _rawImageService.LoadThumbnailAsync(filePath);
+            var thumbnail = await _rawService.LoadThumbnailAsync(filePath);
 
             var loadedImage = new LoadedImageViewModel
             {
@@ -150,103 +158,37 @@ public partial class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Erreur chargement {filePath}: {ex.Message}";
+            StatusMessage = $"Error loading {filePath}: {ex.Message}";
         }
     }
 
     private async Task SelectImageAsync(LoadedImageViewModel image)
     {
         IsLoading = true;
-        StatusMessage = $"Chargement de {image.FileName}...";
+        StatusMessage = $"Loading {image.FileName}...";
 
         CurrentRawImage?.Dispose();
 
-        CurrentRawImage = await _rawImageService.LoadRawImageAsync(image.FilePath);
+        CurrentRawImage = await _rawService.LoadRawImageAsync(image.FilePath);
 
         if (CurrentRawImage?.OriginalBitmap != null)
         {
-            Editor.SetImage(CurrentRawImage.OriginalBitmap);
-            
-            Editor.SetAdjustments(image.Adjustments);
-            _currentAdjustments = image.Adjustments;
-            
-            _imageProcessor.SetOriginalBitmap(CurrentRawImage.OriginalBitmap);
-            SubscribeToAdjustments(image.Adjustments);
-            SubscribeToEditorSteps();
-            _imageProcessor.RequestProcessingWithSteps(Editor.GetAdjustmentSteps(), false);
-            
-            StatusMessage = $"{image.FileName} chargé ({CurrentRawImage.Width}x{CurrentRawImage.Height})";
+            _editor.SetImage(CurrentRawImage.OriginalBitmap);
+            RequestProcessing();
+            StatusMessage = $"{image.FileName} loaded ({CurrentRawImage.Width}x{CurrentRawImage.Height})";
         }
         else
         {
-            StatusMessage = $"Erreur chargement {image.FileName}";
+            StatusMessage = $"Error loading {image.FileName}";
         }
 
         IsLoading = false;
     }
 
-    private void SubscribeToEditorSteps()
-    {
-        Editor.ActiveAdjustments.CollectionChanged += (s, e) =>
-        {
-            if (e.NewItems != null)
-            {
-                foreach (IAdjustmentStep step in e.NewItems)
-                {
-                    if (step is CommunityToolkit.Mvvm.ComponentModel.ObservableObject obs)
-                    {
-                        obs.PropertyChanged += OnStepPropertyChanged;
-                    }
-                }
-            }
-            if (e.OldItems != null)
-            {
-                foreach (IAdjustmentStep step in e.OldItems)
-                {
-                    if (step is CommunityToolkit.Mvvm.ComponentModel.ObservableObject obs)
-                    {
-                        obs.PropertyChanged -= OnStepPropertyChanged;
-                    }
-                }
-            }
-        };
-
-        foreach (var step in Editor.ActiveAdjustments)
-        {
-            if (step is CommunityToolkit.Mvvm.ComponentModel.ObservableObject obs)
-            {
-                obs.PropertyChanged += OnStepPropertyChanged;
-            }
-        }
-    }
-
-    private void OnStepPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-    {
-        _imageProcessor.RequestProcessingWithSteps(Editor.GetAdjustmentSteps(), _isDraggingSlider);
-    }
-
-    private void SubscribeToAdjustments(ImageAdjustments adjustments)
-    {
-        adjustments.PropertyChanged += OnAdjustmentPropertyChanged;
-    }
-
-    private void OnAdjustmentPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName != nameof(ImageAdjustments.NeedsUpdate))
-        {
-            if (e.PropertyName == nameof(ImageAdjustments.DenoiseAmount) ||
-                e.PropertyName == nameof(ImageAdjustments.IsDenoiseEnabled))
-            {
-                _imageProcessor.InvalidateDenoiseCache();
-            }
-            _imageProcessor.RequestProcessingWithSteps(Editor.GetAdjustmentSteps(), _isDraggingSlider);
-        }
-    }
-
     [RelayCommand]
     private void ResetAdjustments()
     {
-        Editor.Reset();
+        _editor.Reset();
     }
 
     [RelayCommand]
@@ -259,7 +201,7 @@ public partial class MainViewModel : ObservableObject
     private void SliderDragCompleted()
     {
         _isDraggingSlider = false;
-        _imageProcessor.RequestProcessingWithSteps(Editor.GetAdjustmentSteps(), false);
+        RequestProcessing();
     }
 
     [RelayCommand]
@@ -270,15 +212,15 @@ public partial class MainViewModel : ObservableObject
 
         var options = new FilePickerOpenOptions
         {
-            Title = "Charger une LUT externe",
+            Title = "Load external LUT",
             AllowMultiple = false,
             FileTypeFilter = new[]
             {
-                new FilePickerFileType("Fichiers LUT")
+                new FilePickerFileType("LUT Files")
                 {
                     Patterns = new[] { "*.cube" }
                 },
-                new FilePickerFileType("Tous les fichiers")
+                new FilePickerFileType("All Files")
                 {
                     Patterns = new[] { "*" }
                 }
@@ -292,28 +234,22 @@ public partial class MainViewModel : ObservableObject
             try
             {
                 var filePath = result[0].Path.LocalPath;
-                var lut = await Task.Run(() => _lutService.LoadFromPath(filePath));
+                var lut = _lutService.LoadFromPath(filePath);
 
-                var adjustments = Editor.GetAdjustments();
-                if (adjustments != null)
-                {
-                    adjustments.ActiveLut = lut;
-                    adjustments.LutFileName = Path.GetFileName(filePath);
-                    adjustments.LutIntensity = 100;
-                    adjustments.IsLutEnabled = true;
-                }
-                StatusMessage = $"LUT chargée: {Path.GetFileName(filePath)} (taille: {lut.Size})";
+                _editor.AddLutCommand.Execute(null);
+                
+                StatusMessage = $"LUT loaded: {Path.GetFileName(filePath)} (size: {lut.Size})";
             }
             catch (Exception ex)
             {
-                StatusMessage = $"Erreur chargement LUT: {ex.Message}";
+                StatusMessage = $"Error loading LUT: {ex.Message}";
             }
         }
     }
 
     private static Window? GetWindow()
     {
-        return App.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+        return App.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
             ? desktop.MainWindow
             : null;
     }

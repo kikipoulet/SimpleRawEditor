@@ -2,10 +2,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="using:SimpleRawEditor.ViewModels.Editor.Adjustments"
-             mc:Ignorable="d" d:DesignWidth="300"
-             x:Class="SimpleRawEditor.Views.Adjustments.VignetteView"
-             x:DataType="vm:VignetteViewModel">
+xmlns:vm="using:SimpleRawEditor.ViewModels.Editor"
+mc:Ignorable="d" d:DesignWidth="300"
+x:Class="SimpleRawEditor.Views.Adjustments.VignetteView"
+x:DataType="vm:VignetteAdjustment">
 
     <Panel>
         <CheckBox VerticalAlignment="Top"
