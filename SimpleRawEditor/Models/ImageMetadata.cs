@@ -1,5 +1,4 @@
 using System;
-using Sdcb.LibRaw.Natives;
 
 namespace SimpleRawEditor.Models;
 

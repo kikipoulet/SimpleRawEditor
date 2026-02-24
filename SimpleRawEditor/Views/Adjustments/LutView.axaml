@@ -14,24 +14,10 @@ x:DataType="vm:LutAdjustment">
                   Margin="0,2,0,0"
                   Padding="10,7,0,7">
             <StackPanel Margin="20,15" Spacing="10">
-                <Grid ColumnDefinitions="*,Auto">
-                    <ComboBox ItemsSource="{Binding AvailablePresets}"
-                              SelectedItem="{Binding SelectedPresetName}"
-                              PlaceholderText="Sélectionner une LUT..."
-                              HorizontalAlignment="Stretch" />
-                    <Button Grid.Column="1"
-                        
-                            Width="32"
-                            Height="32"
-                            Padding="0,0"
-                            Margin="5,0,0,0"
-                            ToolTip.Tip="Charger un fichier LUT externe...">
-                        <TextBlock HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   Text="..."
-                                   FontWeight="Bold" />
-                    </Button>
-                </Grid>
+                <ComboBox ItemsSource="{Binding AvailablePresets}"
+                          SelectedItem="{Binding SelectedPresetName}"
+                          PlaceholderText="Sélectionner une LUT..."
+                          HorizontalAlignment="Stretch" />
 
                 <!-- Intensity -->
                 <StackPanel Margin="0,15,0,0" Spacing="-4" IsVisible="{Binding HasLut}">
@@ -39,8 +25,6 @@ x:DataType="vm:LutAdjustment">
                     <Slider Minimum="-100" Maximum="100" Value="{Binding Intensity}" 
                             TickFrequency="1" IsSnapToTickEnabled="True" Margin="-8,0" Classes="Light" />
                 </StackPanel>
-
-                
             </StackPanel>
         </Expander>
 

@@ -39,10 +39,4 @@ public partial class ThumbnailListViewModel : ObservableObject
         Thumbnails.Clear();
         SelectedThumbnail = null;
     }
-
-    [RelayCommand]
-    public void SelectThumbnail(ViewModels.LoadedImageViewModel thumbnail)
-    {
-        SelectedThumbnail = thumbnail;
-    }
 }

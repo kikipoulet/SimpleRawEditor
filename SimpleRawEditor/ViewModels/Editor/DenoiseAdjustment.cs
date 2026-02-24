@@ -9,18 +9,11 @@ namespace SimpleRawEditor.ViewModels.Editor;
 
 public partial class DenoiseAdjustment : AdjustmentStep
 {
-    private readonly ImageProcessor? _processor;
-    
     public override string Name => "Denoise";
     public override UserControl View => new DenoiseView { DataContext = this };
 
     [ObservableProperty] 
     private double _amount;
-
-    public DenoiseAdjustment(ImageProcessor? processor = null)
-    {
-        _processor = processor;
-    }
 
     public override void Apply(byte[] pixels, int width, int height, int stride)
     {

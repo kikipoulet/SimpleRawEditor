@@ -17,8 +17,6 @@ public abstract partial class AdjustmentStep : ObservableObject
     [ObservableProperty] 
     protected bool _isExpanded = true;
 
-    public bool CanAdjust => IsEnabled;
-
     public event Action? RemoveRequested;
     public event Action? Changed;
 

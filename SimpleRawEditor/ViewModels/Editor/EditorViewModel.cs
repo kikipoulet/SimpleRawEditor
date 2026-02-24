@@ -19,12 +19,6 @@ public partial class EditorViewModel : ObservableObject
     [ObservableProperty]
     private Bitmap? _displayedImage;
 
-    [ObservableProperty]
-    private bool _isLoading;
-
-    [ObservableProperty]
-    private string _statusMessage = "No image selected";
-
     public bool CanEdit => CurrentImage != null;
 
     public ObservableCollection<AdjustmentStep> Adjustments { get; } = new();
@@ -101,7 +95,6 @@ public partial class EditorViewModel : ObservableObject
     {
         CurrentImage = image;
         DisplayedImage = image;
-        StatusMessage = "Image loaded - Ready to edit";
     }
 
     public void UpdateDisplayedImage(Bitmap image)

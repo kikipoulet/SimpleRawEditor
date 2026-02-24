@@ -32,9 +32,6 @@ public partial class MainViewModel : ObservableObject
     private EditorViewModel _editor;
 
     [ObservableProperty]
-    private ObservableCollection<string> _availableLuts = new();
-
-    [ObservableProperty]
     private string _statusMessage = "Ready";
 
     [ObservableProperty]
@@ -47,8 +44,6 @@ public partial class MainViewModel : ObservableObject
         _processor = new ImageProcessor();
         
         _editor = new EditorViewModel(_lutService);
-
-        LoadAvailableLuts();
 
         _processor.ImageProcessed += image =>
         {
@@ -78,15 +73,6 @@ public partial class MainViewModel : ObservableObject
         {
             RequestProcessing();
         };
-    }
-
-    private void LoadAvailableLuts()
-    {
-        AvailableLuts.Clear();
-        foreach (var lutName in _lutService.GetAvailableLuts())
-        {
-            AvailableLuts.Add(lutName);
-        }
     }
 
     private void RequestProcessing()
