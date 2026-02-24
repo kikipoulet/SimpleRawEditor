@@ -11,6 +11,7 @@ using SimpleRawEditor.Models;
 using SimpleRawEditor.Services.Core;
 using SimpleRawEditor.Services.Processing;
 using SimpleRawEditor.ViewModels.Editor;
+using SimpleRawEditor.ViewModels.Editor.Adjustments;
 using SimpleRawEditor.ViewModels.Main.Thumbnails;
 
 namespace SimpleRawEditor.ViewModels.Main;
@@ -20,7 +21,7 @@ public partial class MainViewModel : ObservableObject
     private readonly IRawImageService _rawImageService;
     private readonly IImageProcessor _imageProcessor;
     private readonly ILutService _lutService;
-    private RawImageData? _currentRawImage;
+    [ObservableProperty] private RawImageData? currentRawImage;
     private bool _isDraggingSlider;
     private ImageAdjustments? _currentAdjustments;
 
@@ -158,22 +159,23 @@ public partial class MainViewModel : ObservableObject
         IsLoading = true;
         StatusMessage = $"Chargement de {image.FileName}...";
 
-        _currentRawImage?.Dispose();
+        CurrentRawImage?.Dispose();
 
-        _currentRawImage = await _rawImageService.LoadRawImageAsync(image.FilePath);
+        CurrentRawImage = await _rawImageService.LoadRawImageAsync(image.FilePath);
 
-        if (_currentRawImage?.OriginalBitmap != null)
+        if (CurrentRawImage?.OriginalBitmap != null)
         {
-            Editor.SetImage(_currentRawImage.OriginalBitmap);
+            Editor.SetImage(CurrentRawImage.OriginalBitmap);
             
             Editor.SetAdjustments(image.Adjustments);
             _currentAdjustments = image.Adjustments;
             
-            _imageProcessor.SetOriginalBitmap(_currentRawImage.OriginalBitmap);
+            _imageProcessor.SetOriginalBitmap(CurrentRawImage.OriginalBitmap);
             SubscribeToAdjustments(image.Adjustments);
-            _imageProcessor.RequestProcessing(image.Adjustments, false);
+            SubscribeToEditorSteps();
+            _imageProcessor.RequestProcessingWithSteps(Editor.GetAdjustmentSteps(), false);
             
-            StatusMessage = $"{image.FileName} chargé ({_currentRawImage.Width}x{_currentRawImage.Height})";
+            StatusMessage = $"{image.FileName} chargé ({CurrentRawImage.Width}x{CurrentRawImage.Height})";
         }
         else
         {
@@ -181,6 +183,46 @@ public partial class MainViewModel : ObservableObject
         }
 
         IsLoading = false;
+    }
+
+    private void SubscribeToEditorSteps()
+    {
+        Editor.ActiveAdjustments.CollectionChanged += (s, e) =>
+        {
+            if (e.NewItems != null)
+            {
+                foreach (IAdjustmentStep step in e.NewItems)
+                {
+                    if (step is CommunityToolkit.Mvvm.ComponentModel.ObservableObject obs)
+                    {
+                        obs.PropertyChanged += OnStepPropertyChanged;
+                    }
+                }
+            }
+            if (e.OldItems != null)
+            {
+                foreach (IAdjustmentStep step in e.OldItems)
+                {
+                    if (step is CommunityToolkit.Mvvm.ComponentModel.ObservableObject obs)
+                    {
+                        obs.PropertyChanged -= OnStepPropertyChanged;
+                    }
+                }
+            }
+        };
+
+        foreach (var step in Editor.ActiveAdjustments)
+        {
+            if (step is CommunityToolkit.Mvvm.ComponentModel.ObservableObject obs)
+            {
+                obs.PropertyChanged += OnStepPropertyChanged;
+            }
+        }
+    }
+
+    private void OnStepPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        _imageProcessor.RequestProcessingWithSteps(Editor.GetAdjustmentSteps(), _isDraggingSlider);
     }
 
     private void SubscribeToAdjustments(ImageAdjustments adjustments)
@@ -197,7 +239,7 @@ public partial class MainViewModel : ObservableObject
             {
                 _imageProcessor.InvalidateDenoiseCache();
             }
-            _imageProcessor.RequestProcessing(_currentAdjustments, _isDraggingSlider);
+            _imageProcessor.RequestProcessingWithSteps(Editor.GetAdjustmentSteps(), _isDraggingSlider);
         }
     }
 
@@ -217,10 +259,7 @@ public partial class MainViewModel : ObservableObject
     private void SliderDragCompleted()
     {
         _isDraggingSlider = false;
-        if (_currentAdjustments != null)
-        {
-            _imageProcessor.RequestProcessing(_currentAdjustments, false);
-        }
+        _imageProcessor.RequestProcessingWithSteps(Editor.GetAdjustmentSteps(), false);
     }
 
     [RelayCommand]
@@ -262,12 +301,8 @@ public partial class MainViewModel : ObservableObject
                     adjustments.LutFileName = Path.GetFileName(filePath);
                     adjustments.LutIntensity = 100;
                     adjustments.IsLutEnabled = true;
-                    Editor.Lut.ActiveLut = lut;
-                    Editor.Lut.LutFileName = Path.GetFileName(filePath);
-                    Editor.Lut.Intensity = 100;
-                    Editor.Lut.IsEnabled = true;
-                    StatusMessage = $"LUT chargée: {adjustments.LutFileName} (taille: {lut.Size})";
                 }
+                StatusMessage = $"LUT chargée: {Path.GetFileName(filePath)} (taille: {lut.Size})";
             }
             catch (Exception ex)
             {

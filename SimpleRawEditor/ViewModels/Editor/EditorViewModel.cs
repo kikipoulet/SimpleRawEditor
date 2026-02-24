@@ -1,3 +1,6 @@
+using System;
+using System.Collections.ObjectModel;
+using System.Linq;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -9,8 +12,8 @@ namespace SimpleRawEditor.ViewModels.Editor;
 
 public partial class EditorViewModel : ObservableObject
 {
-    private ImageAdjustments _adjustments;
     private readonly ILutService _lutService;
+    private ImageAdjustments? _adjustments;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanEdit))]
@@ -27,35 +30,75 @@ public partial class EditorViewModel : ObservableObject
 
     public bool CanEdit => CurrentImage != null;
 
-    public BasicAdjustmentsViewModel BasicAdjustments { get; private set; }
-    public DenoiseViewModel Denoise { get; private set; }
-    public LutViewModel Lut { get; private set; }
-    public VignetteViewModel Vignette { get; private set; }
+    public ObservableCollection<IAdjustmentStep> ActiveAdjustments { get; } = new();
 
-    public EditorViewModel(ImageAdjustments adjustments, ILutService lutService)
+    public EditorViewModel(ILutService lutService)
     {
         _lutService = lutService;
-        _adjustments = adjustments;
         
-        BasicAdjustments = new BasicAdjustmentsViewModel(adjustments);
-        Denoise = new DenoiseViewModel(adjustments);
-        Lut = new LutViewModel(adjustments, lutService);
-        Vignette = new VignetteViewModel(adjustments);
+        var basic = new BasicAdjustmentsViewModel();
+        ActiveAdjustments.Add(basic);
     }
 
-    public void SetAdjustments(ImageAdjustments adjustments)
+    public EditorViewModel(ImageAdjustments adjustments, ILutService lutService) : this(lutService)
     {
         _adjustments = adjustments;
+    }
+
+    [RelayCommand]
+    private void AddDenoise()
+    {
+        var denoise = new DenoiseViewModel();
+        denoise.RemoveRequested += () => RemoveStep(denoise);
+        denoise.IsEnabled = true;
         
-        BasicAdjustments = new BasicAdjustmentsViewModel(adjustments);
-        Denoise = new DenoiseViewModel(adjustments);
-        Lut = new LutViewModel(adjustments, _lutService);
-        Vignette = new VignetteViewModel(adjustments);
+        var insertIndex = FindDenoiseInsertIndex();
+        ActiveAdjustments.Insert(insertIndex, denoise);
+    }
+
+    [RelayCommand]
+    private void AddLut()
+    {
+        var lut = new LutViewModel(_lutService);
+        lut.RemoveRequested += () => RemoveStep(lut);
+        lut.IsEnabled = true;
         
-        OnPropertyChanged(nameof(BasicAdjustments));
-        OnPropertyChanged(nameof(Denoise));
-        OnPropertyChanged(nameof(Lut));
-        OnPropertyChanged(nameof(Vignette));
+        ActiveAdjustments.Add(lut);
+    }
+
+    [RelayCommand]
+    private void AddVignette()
+    {
+        var vignette = new VignetteViewModel();
+        vignette.RemoveRequested += () => RemoveStep(vignette);
+        vignette.IsEnabled = true;
+        
+        ActiveAdjustments.Add(vignette);
+    }
+
+    private int FindDenoiseInsertIndex()
+    {
+        for (int i = 1; i < ActiveAdjustments.Count; i++)
+        {
+            if (ActiveAdjustments[i] is LutViewModel || ActiveAdjustments[i] is VignetteViewModel)
+            {
+                return i;
+            }
+        }
+        return ActiveAdjustments.Count;
+    }
+
+    [RelayCommand]
+    private void Remove(IAdjustmentStep? step)
+    {
+        if (step == null) return;
+        RemoveStep(step);
+    }
+
+    private void RemoveStep(IAdjustmentStep step)
+    {
+        if (step is BasicAdjustmentsViewModel) return;
+        ActiveAdjustments.Remove(step);
     }
 
     public void SetImage(Bitmap image)
@@ -72,18 +115,24 @@ public partial class EditorViewModel : ObservableObject
 
     public void Reset()
     {
-        _adjustments.Reset();
-        BasicAdjustments.UpdateFromAdjustments();
-        Denoise.Amount = 0;
-        Denoise.IsEnabled = false;
-        Vignette.Intensity = 0;
-        Vignette.Spread = 50;
-        Vignette.IsEnabled = false;
-        Lut.Clear();
+        ActiveAdjustments.Clear();
+        
+        var basic = new BasicAdjustmentsViewModel();
+        ActiveAdjustments.Add(basic);
     }
 
-    public ImageAdjustments GetAdjustments()
+    public void SetAdjustments(ImageAdjustments adjustments)
+    {
+        _adjustments = adjustments;
+    }
+
+    public ImageAdjustments? GetAdjustments()
     {
         return _adjustments;
+    }
+
+    public System.Collections.Generic.IEnumerable<IAdjustmentStep> GetAdjustmentSteps()
+    {
+        return ActiveAdjustments;
     }
 }

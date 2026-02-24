@@ -6,6 +6,7 @@
          xmlns:suki="https://github.com/kikipoulet/SukiUI"
          xmlns:views="using:SimpleRawEditor.Views"
          xmlns:editor="using:SimpleRawEditor.Views.Editor"
+         xmlns:controls="clr-namespace:SimpleRawEditor.Controls"
          mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
          x:Class="SimpleRawEditor.MainWindow"
          x:DataType="vm:MainViewModel" IsMenuVisible="True"
@@ -30,10 +31,13 @@
     <Grid Grid.Row="0" ColumnDefinitions="*,350">
       <!-- Image principale -->
       <Border Grid.Column="0" Padding="10">
+        <Panel>
         <Image Source="{Binding Editor.DisplayedImage}"
                Stretch="Uniform"
                HorizontalAlignment="Center"
                VerticalAlignment="Center" />
+        <controls:RawImageInfo HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="30" IsVisible="{Binding CurrentRawImage, Converter={x:Static ObjectConverters.IsNotNull}}" DataContext="{Binding }" /> 
+        </Panel>
       </Border>
 
       <!-- Panneau d'ajustements -->

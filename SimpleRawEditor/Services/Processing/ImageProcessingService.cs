@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
@@ -6,6 +7,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using SimpleRawEditor.Models;
 using SimpleRawEditor.Services.Processing;
+using SimpleRawEditor.ViewModels.Editor.Adjustments;
 
 namespace SimpleRawEditor.Services.Processing;
 
@@ -43,6 +45,142 @@ public class ImageProcessingService : IDisposable
     {
         _denoisingHandler.InvalidateCache();
         Console.WriteLine("[ImageProcessingService] Denoise cache invalidated");
+    }
+
+    public unsafe Bitmap ApplySteps(IEnumerable<IAdjustmentStep> steps, Bitmap source)
+    {
+        Console.WriteLine("[ImageProcessingService] ApplySteps START");
+
+        if (source is not WriteableBitmap writeableSource)
+        {
+            Console.WriteLine("[ImageProcessingService] Source is not WriteableBitmap, returning as-is");
+            return source;
+        }
+
+        var pixelSize = writeableSource.PixelSize;
+        int width = pixelSize.Width;
+        int height = pixelSize.Height;
+
+        using var srcBuffer = writeableSource.Lock();
+        int stride = srcBuffer.RowBytes;
+        int totalBytes = height * stride;
+
+        byte[] pixels = new byte[totalBytes];
+        System.Runtime.InteropServices.Marshal.Copy(srcBuffer.Address, pixels, 0, totalBytes);
+
+        foreach (var step in steps)
+        {
+            if (step.IsEnabled)
+            {
+                Console.WriteLine($"[ImageProcessingService] Applying step: {step.Name}");
+                step.Apply(pixels, width, height, stride);
+            }
+        }
+
+        var result = new WriteableBitmap(
+            pixelSize,
+            writeableSource.Dpi,
+            writeableSource.Format,
+            writeableSource.AlphaFormat);
+
+        using var destBuffer = result.Lock();
+        System.Runtime.InteropServices.Marshal.Copy(pixels, 0, destBuffer.Address, pixels.Length);
+
+        Console.WriteLine("[ImageProcessingService] ApplySteps completed");
+        return result;
+    }
+
+    public unsafe Bitmap ApplyStepsFast(IEnumerable<IAdjustmentStep> steps, WriteableBitmap source, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+
+        var pixelSize = source.PixelSize;
+        int previewWidth = Math.Max(pixelSize.Width / _previewDivisor, 100);
+        int previewHeight = Math.Max(pixelSize.Height / _previewDivisor, 100);
+
+        if (_previewBitmap == null ||
+            _previewBitmap.PixelSize.Width != previewWidth ||
+            _previewBitmap.PixelSize.Height != previewHeight)
+        {
+            _previewBitmap?.Dispose();
+            _previewBitmap = new WriteableBitmap(
+                new PixelSize(previewWidth, previewHeight),
+                source.Dpi,
+                source.Format,
+                source.AlphaFormat);
+        }
+
+        using var srcBuffer = source.Lock();
+        using var destBuffer = _previewBitmap.Lock();
+
+        byte* srcPtr = (byte*)srcBuffer.Address;
+        byte* destPtr = (byte*)destBuffer.Address;
+        int srcStride = srcBuffer.RowBytes;
+        int destStride = destBuffer.RowBytes;
+        int srcWidth = pixelSize.Width;
+        int srcHeight = pixelSize.Height;
+
+        byte[] srcPixels = new byte[srcHeight * srcStride];
+        for (int y = 0; y < srcHeight; y++)
+        {
+            int rowStart = y * srcStride;
+            for (int x = 0; x < srcWidth * 4; x++)
+            {
+                srcPixels[rowStart + x] = srcPtr[rowStart + x];
+            }
+        }
+
+        var stepsList = new List<IAdjustmentStep>(steps);
+        
+        for (int y = 0; y < previewHeight; y++)
+        {
+            int srcY = y * _previewDivisor;
+            if (srcY >= srcHeight) break;
+
+            int destRowStart = y * destStride;
+            int srcRowStart = srcY * srcStride;
+
+            for (int x = 0; x < previewWidth; x++)
+            {
+                int srcX = x * _previewDivisor;
+                if (srcX >= srcWidth) break;
+
+                int destIndex = destRowStart + x * 4;
+                int srcIndex = srcRowStart + srcX * 4;
+
+                float b = srcPixels[srcIndex];
+                float g = srcPixels[srcIndex + 1];
+                float r = srcPixels[srcIndex + 2];
+
+                byte[] pixelBytes = new byte[] { (byte)b, (byte)g, (byte)r, srcPixels[srcIndex + 3] };
+                
+                foreach (var step in stepsList)
+                {
+                    if (step.IsEnabled)
+                    {
+                        var smallPixels = new byte[4 * previewHeight * previewWidth];
+                        int smallIndex = (y * previewWidth + x) * 4;
+                        smallPixels[smallIndex] = (byte)b;
+                        smallPixels[smallIndex + 1] = (byte)g;
+                        smallPixels[smallIndex + 2] = (byte)r;
+                        smallPixels[smallIndex + 3] = srcPixels[srcIndex + 3];
+                        
+                        step.Apply(smallPixels, previewWidth, previewHeight, previewWidth * 4);
+                        
+                        b = smallPixels[smallIndex];
+                        g = smallPixels[smallIndex + 1];
+                        r = smallPixels[smallIndex + 2];
+                    }
+                }
+
+                destPtr[destIndex] = (byte)b;
+                destPtr[destIndex + 1] = (byte)g;
+                destPtr[destIndex + 2] = (byte)r;
+                destPtr[destIndex + 3] = srcPixels[srcIndex + 3];
+            }
+        }
+
+        return _previewBitmap;
     }
 
     public unsafe Bitmap ApplyAdjustments(Bitmap source, ImageAdjustments adjustments)

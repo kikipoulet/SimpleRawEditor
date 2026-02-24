@@ -1,12 +1,17 @@
+using System;
+using System.Threading.Tasks;
+using Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using SimpleRawEditor.Models;
+using SimpleRawEditor.Services.Processing;
+using SimpleRawEditor.Views.Adjustments;
 
 namespace SimpleRawEditor.ViewModels.Editor.Adjustments;
 
-public partial class BasicAdjustmentsViewModel : ObservableObject
+public partial class BasicAdjustmentsViewModel : ObservableObject, IAdjustmentStep
 {
-    private readonly ImageAdjustments _adjustments;
+    public string Name => "Basic Adjustments";
+    public UserControl View => new BasicAdjustmentsView { DataContext = this };
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanAdjust))]
@@ -29,33 +34,63 @@ public partial class BasicAdjustmentsViewModel : ObservableObject
 
     public bool CanAdjust => IsEnabled;
 
-    public BasicAdjustmentsViewModel(ImageAdjustments adjustments)
-    {
-        _adjustments = adjustments;
-        _isEnabled = adjustments.IsBasicAdjustmentsEnabled;
-        _exposure = adjustments.Exposure;
-        _highlights = adjustments.Highlights;
-        _contrast = adjustments.Contrast;
-        _shadows = adjustments.Shadows;
+    public event Action? RemoveRequested;
 
-        _adjustments.PropertyChanged += (s, e) =>
+    public void Remove() => RemoveRequested?.Invoke();
+
+    public BasicAdjustmentsViewModel()
+    {
+    }
+
+    public void Apply(byte[] pixels, int width, int height, int stride)
+    {
+        if (!IsEnabled) return;
+        if (Math.Abs(Exposure) < 0.001 && Math.Abs(Contrast) < 0.001 && 
+            Math.Abs(Highlights) < 0.001 && Math.Abs(Shadows) < 0.001) return;
+
+        var precomputed = new PrecomputedAdjustments(
+            (float)Math.Pow(2, (Exposure / 100.0) * 0.5),
+            (float)(Contrast / 100.0),
+            (float)(Shadows / 100.0),
+            (float)(Highlights / 100.0),
+            0, 0, 0,
+            Math.Abs(Exposure) > 0.001,
+            Math.Abs(Contrast) > 0.001,
+            Math.Abs(Shadows) > 0.001,
+            Math.Abs(Highlights) > 0.001,
+            false, false,
+            null, 0, false
+        );
+
+        const float inv255 = 1.0f / 255.0f;
+
+        Parallel.For(0, height, y =>
         {
-            if (e.PropertyName == nameof(ImageAdjustments.Exposure))
-                Exposure = _adjustments.Exposure;
-            else if (e.PropertyName == nameof(ImageAdjustments.Highlights))
-                Highlights = _adjustments.Highlights;
-            else if (e.PropertyName == nameof(ImageAdjustments.Contrast))
-                Contrast = _adjustments.Contrast;
-            else if (e.PropertyName == nameof(ImageAdjustments.Shadows))
-                Shadows = _adjustments.Shadows;
-            else if (e.PropertyName == nameof(ImageAdjustments.IsBasicAdjustmentsEnabled))
-                IsEnabled = _adjustments.IsBasicAdjustmentsEnabled;
-        };
+            int rowStart = y * stride;
+
+            for (int x = 0; x < width; x++)
+            {
+                int index = rowStart + x * 4;
+
+                float b = pixels[index];
+                float g = pixels[index + 1];
+                float r = pixels[index + 2];
+
+                float luminance = (0.299f * r + 0.587f * g + 0.114f * b) * inv255;
+
+                r = ToneAdjustmentHandler.ApplyToneCurve(r * inv255, luminance, in precomputed) * 255.0f;
+                g = ToneAdjustmentHandler.ApplyToneCurve(g * inv255, luminance, in precomputed) * 255.0f;
+                b = ToneAdjustmentHandler.ApplyToneCurve(b * inv255, luminance, in precomputed) * 255.0f;
+
+                pixels[index] = ToneAdjustmentHandler.ClampByte(b);
+                pixels[index + 1] = ToneAdjustmentHandler.ClampByte(g);
+                pixels[index + 2] = ToneAdjustmentHandler.ClampByte(r);
+            }
+        });
     }
 
     partial void OnIsEnabledChanged(bool value)
     {
-        _adjustments.IsBasicAdjustmentsEnabled = value;
         if (!value)
         {
             Exposure = 0;
@@ -64,35 +99,6 @@ public partial class BasicAdjustmentsViewModel : ObservableObject
             Shadows = 0;
         }
         IsExpanded = value;
-    }
-
-    partial void OnExposureChanged(double value)
-    {
-        if (IsEnabled) _adjustments.Exposure = value;
-    }
-
-    partial void OnHighlightsChanged(double value)
-    {
-        if (IsEnabled) _adjustments.Highlights = value;
-    }
-
-    partial void OnContrastChanged(double value)
-    {
-        if (IsEnabled) _adjustments.Contrast = value;
-    }
-
-    partial void OnShadowsChanged(double value)
-    {
-        if (IsEnabled) _adjustments.Shadows = value;
-    }
-
-    public void UpdateFromAdjustments()
-    {
-        IsEnabled = _adjustments.IsBasicAdjustmentsEnabled;
-        Exposure = _adjustments.Exposure;
-        Highlights = _adjustments.Highlights;
-        Contrast = _adjustments.Contrast;
-        Shadows = _adjustments.Shadows;
     }
 
     [RelayCommand]

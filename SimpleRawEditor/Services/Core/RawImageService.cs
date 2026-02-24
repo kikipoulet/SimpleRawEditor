@@ -1,10 +1,12 @@
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Sdcb.LibRaw;
+using Sdcb.LibRaw.Natives;
 using SimpleRawEditor.Models;
 
 namespace SimpleRawEditor.Services.Core;
@@ -18,6 +20,9 @@ public class RawImageService : IRawImageService
             try
             {
                 using var context = RawContext.OpenFile(filePath);
+                LibRawImageParams imageParams = context.ImageParams;
+                LibRawImageOtherParams otherParams = context.ImageOtherParams;
+                
                 context.Unpack();
 
                 context.DcrawProcess(c =>
@@ -35,7 +40,20 @@ public class RawImageService : IRawImageService
                     FileName = Path.GetFileName(filePath),
                     OriginalBitmap = bitmap,
                     Width = processedImage.Width,
-                    Height = processedImage.Height
+                    Height = processedImage.Height,
+                    Metadata = new ImageMetadata()
+                    {
+                        Model = imageParams.Make +" " +imageParams.Model,
+                        IsoSpeed = otherParams.IsoSpeed,
+                        Shutter = 1/  otherParams.Shutter,
+                        Aperture = otherParams.Aperture,
+                        Lens = context.LensInfo.Lens,
+                        Date = DateTimeOffset
+                            .FromUnixTimeSeconds(otherParams.Timestamp)
+                            .UtcDateTime,
+                        Width = processedImage.Width,
+                        Height = processedImage.Height,
+                    }
                 };
             }
             catch (Exception ex)
@@ -76,6 +94,16 @@ public class RawImageService : IRawImageService
         int width = rgbImage.Width;
         int height = rgbImage.Height;
 
+        int srcStride = width * 3;
+        int totalBytes = srcStride * height;
+        byte[] srcData = new byte[totalBytes];
+        Marshal.Copy(rgbImage.DataPointer, srcData, 0, totalBytes);
+
+        for (int i = 0; i < srcData.Length; i += 3)
+        {
+            (srcData[i], srcData[i + 2]) = (srcData[i + 2], srcData[i]);
+        }
+
         var writeableBitmap = new WriteableBitmap(
             new PixelSize(width, height),
             new Vector(96, 96),
@@ -84,8 +112,6 @@ public class RawImageService : IRawImageService
 
         using var buffer = writeableBitmap.Lock();
 
-        var srcData = rgbImage.GetData<byte>();
-        int srcStride = width * 3;
         int destStride = buffer.RowBytes;
 
         byte* destPtr = (byte*)buffer.Address;
@@ -97,9 +123,9 @@ public class RawImageService : IRawImageService
                 int srcIndex = y * srcStride + x * 3;
                 int destIndex = y * destStride + x * 4;
 
-                byte r = srcData[srcIndex];
+                byte b = srcData[srcIndex];
                 byte g = srcData[srcIndex + 1];
-                byte b = srcData[srcIndex + 2];
+                byte r = srcData[srcIndex + 2];
 
                 destPtr[destIndex] = b;
                 destPtr[destIndex + 1] = g;

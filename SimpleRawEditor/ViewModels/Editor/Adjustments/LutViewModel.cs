@@ -1,18 +1,23 @@
 using System;
 using System.Collections.ObjectModel;
-using System.IO;
 using System.Threading.Tasks;
+using Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SimpleRawEditor.Models;
 using SimpleRawEditor.Services.Core;
+using SimpleRawEditor.Services.Processing;
+using SimpleRawEditor.Views.Adjustments;
 
 namespace SimpleRawEditor.ViewModels.Editor.Adjustments;
 
-public partial class LutViewModel : ObservableObject
+public partial class LutViewModel : ObservableObject, IAdjustmentStep
 {
-    private readonly ImageAdjustments _adjustments;
     private readonly ILutService _lutService;
+
+    public string Name => "LUT";
+    public UserControl View => new LutView { DataContext = this };
+    public event Action? RemoveRequested;
 
     [ObservableProperty]
     private bool _isExpanded = true;
@@ -43,28 +48,12 @@ public partial class LutViewModel : ObservableObject
     public bool HasLut => ActiveLut != null;
     public bool CanAdjust => IsEnabled;
 
-    public LutViewModel(ImageAdjustments adjustments, ILutService lutService)
+    public void Remove() => RemoveRequested?.Invoke();
+
+    public LutViewModel(ILutService lutService)
     {
-        _adjustments = adjustments;
         _lutService = lutService;
-        IsEnabled = adjustments.IsLutEnabled;
-        ActiveLut = adjustments.ActiveLut;
-        LutFileName = adjustments.LutFileName;
-        Intensity = adjustments.LutIntensity;
-
         LoadAvailablePresets();
-
-        _adjustments.PropertyChanged += (s, e) =>
-        {
-            if (e.PropertyName == nameof(ImageAdjustments.IsLutEnabled))
-                IsEnabled = _adjustments.IsLutEnabled;
-            else if (e.PropertyName == nameof(ImageAdjustments.ActiveLut))
-                ActiveLut = _adjustments.ActiveLut;
-            else if (e.PropertyName == nameof(ImageAdjustments.LutFileName))
-                LutFileName = _adjustments.LutFileName;
-            else if (e.PropertyName == nameof(ImageAdjustments.LutIntensity))
-                Intensity = _adjustments.LutIntensity;
-        };
     }
 
     private void LoadAvailablePresets()
@@ -76,25 +65,42 @@ public partial class LutViewModel : ObservableObject
         }
     }
 
+    public void Apply(byte[] pixels, int width, int height, int stride)
+    {
+        if (!IsEnabled || ActiveLut == null || Intensity < 0.001) return;
+
+        float intensity = (float)(Intensity / 100.0);
+        const float inv255 = 1.0f / 255.0f;
+
+        var precomputed = new PrecomputedAdjustments(
+            0, 0, 0, 0, 0, 0, 0,
+            false, false, false, false,
+            false, false,
+            ActiveLut, intensity, true
+        );
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                int index = (y * stride) + (x * 4);
+
+                float r = pixels[index] * inv255;
+                float g = pixels[index + 1] * inv255;
+                float b = pixels[index + 2] * inv255;
+
+                LutApplicationHandler.ApplyLutInline(ref r, ref g, ref b, in precomputed);
+
+                pixels[index] = ToneAdjustmentHandler.ClampByte(r * 255.0f);
+                pixels[index + 1] = ToneAdjustmentHandler.ClampByte(g * 255.0f);
+                pixels[index + 2] = ToneAdjustmentHandler.ClampByte(b * 255.0f);
+            }
+        }
+    }
+
     partial void OnIsEnabledChanged(bool value)
     {
-        _adjustments.IsLutEnabled = value;
         IsExpanded = value;
-    }
-
-    partial void OnActiveLutChanged(CubeLut? value)
-    {
-        _adjustments.ActiveLut = value;
-    }
-
-    partial void OnLutFileNameChanged(string? value)
-    {
-        _adjustments.LutFileName = value;
-    }
-
-    partial void OnIntensityChanged(double value)
-    {
-        _adjustments.LutIntensity = value;
     }
 
     partial void OnSelectedPresetNameChanged(string? value)

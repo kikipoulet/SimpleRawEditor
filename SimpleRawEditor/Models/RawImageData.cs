@@ -10,6 +10,8 @@ public class RawImageData : IDisposable
     public Bitmap? OriginalBitmap { get; set; }
     public int Width { get; set; }
     public int Height { get; set; }
+    
+    public ImageMetadata ? Metadata { get; set; }
 
     public void Dispose()
     {

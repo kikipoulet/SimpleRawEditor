@@ -1,12 +1,17 @@
+using System;
+using Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using SimpleRawEditor.Models;
+using SimpleRawEditor.Services.Processing;
+using SimpleRawEditor.Views.Adjustments;
 
 namespace SimpleRawEditor.ViewModels.Editor.Adjustments;
 
-public partial class VignetteViewModel : ObservableObject
+public partial class VignetteViewModel : ObservableObject, IAdjustmentStep
 {
-    private readonly ImageAdjustments _adjustments;
+    public string Name => "Vignette";
+    public UserControl View => new VignetteView { DataContext = this };
+    public event Action? RemoveRequested;
 
     [ObservableProperty]
     private bool _isExpanded = true;
@@ -23,38 +28,49 @@ public partial class VignetteViewModel : ObservableObject
 
     public bool CanAdjust => IsEnabled;
 
-    public VignetteViewModel(ImageAdjustments adjustments)
-    {
-        _adjustments = adjustments;
-        IsEnabled = adjustments.IsVignetteEnabled;
-        Intensity = adjustments.VignetteIntensity;
-        Spread = adjustments.VignetteSpread;
+    public void Remove() => RemoveRequested?.Invoke();
 
-        _adjustments.PropertyChanged += (s, e) =>
+    public VignetteViewModel()
+    {
+    }
+
+    public void Apply(byte[] pixels, int width, int height, int stride)
+    {
+        if (!IsEnabled || Math.Abs(Intensity) < 0.001) return;
+
+        float intensity = (float)(Intensity / 100.0);
+        float spread = (float)(Spread / 100.0);
+
+        var precomputed = new PrecomputedAdjustments(
+            0, 0, 0, 0, 0,
+            intensity, spread,
+            false, false, false, false,
+            false, true,
+            null, 0, false
+        );
+
+        for (int y = 0; y < height; y++)
         {
-            if (e.PropertyName == nameof(ImageAdjustments.IsVignetteEnabled))
-                IsEnabled = _adjustments.IsVignetteEnabled;
-            else if (e.PropertyName == nameof(ImageAdjustments.VignetteIntensity))
-                Intensity = _adjustments.VignetteIntensity;
-            else if (e.PropertyName == nameof(ImageAdjustments.VignetteSpread))
-                Spread = _adjustments.VignetteSpread;
-        };
+            for (int x = 0; x < width; x++)
+            {
+                int index = (y * stride) + (x * 4);
+
+                float r = pixels[index];
+                float g = pixels[index + 1];
+                float b = pixels[index + 2];
+
+                VignetteHandler.ApplyVignette(ref r, ref g, ref b, x, y, width, height, in precomputed);
+
+                pixels[index] = ToneAdjustmentHandler.ClampByte(r);
+                pixels[index + 1] = ToneAdjustmentHandler.ClampByte(g);
+                pixels[index + 2] = ToneAdjustmentHandler.ClampByte(b);
+            }
+        }
     }
 
     partial void OnIsEnabledChanged(bool value)
     {
-        _adjustments.IsVignetteEnabled = value;
         IsExpanded = value;
-    }
-
-    partial void OnIntensityChanged(double value)
-    {
-        _adjustments.VignetteIntensity = value;
-    }
-
-    partial void OnSpreadChanged(double value)
-    {
-        _adjustments.VignetteSpread = value;
     }
 
     [RelayCommand]

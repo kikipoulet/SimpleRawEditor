@@ -2,7 +2,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:adjustments="using:SimpleRawEditor.Views.Adjustments"
              xmlns:vm="using:SimpleRawEditor.ViewModels.Editor"
              xmlns:suki="https://github.com/kikipoulet/SukiUI"
              mc:Ignorable="d" d:DesignWidth="350" d:DesignHeight="600"
@@ -13,24 +12,40 @@
         <Border BorderBrush="{DynamicResource SukiBorderBrush}" BorderThickness="1,0,0,0">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel>
-                    <Panel>
-                 <!-- Basic Adjustments -->
-                    <adjustments:BasicAdjustmentsView DataContext="{Binding BasicAdjustments}" />
-                    </Panel>
-                    <Separator Background="#555555" Margin="0,5,0,5" />
-
-                    <!-- Denoising -->
-                    <adjustments:DenoiseView DataContext="{Binding Denoise}" />
-
-                    <Separator Background="#555555" Margin="0,5,0,5" />
-
-                    <!-- LUT -->
-                    <adjustments:LutView DataContext="{Binding Lut}" />
-
-                    <Separator Background="#555555" Margin="0,5,0,5" />
-
-                    <!-- Vignette -->
-                    <adjustments:VignetteView DataContext="{Binding Vignette}" />
+                    <ItemsControl ItemsSource="{Binding ActiveAdjustments}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <StackPanel.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="Supprimer" 
+                                                      Command="{Binding $parent[ItemsControl].((vm:EditorViewModel)DataContext).RemoveCommand}"
+                                                      CommandParameter="{Binding}" />
+                                        </ContextMenu>
+                                    </StackPanel.ContextMenu>
+                                    <ContentControl Content="{Binding View}" />
+                                    <Separator Background="#555555" Margin="0,5,0,5" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    
+                    <Button Content="Add Modification"
+                            HorizontalAlignment="Stretch"
+                            Margin="10,5,10,10">
+                        <Button.Flyout>
+                            <MenuFlyout>
+                                <MenuItem Header="Denoise" Command="{Binding AddDenoiseCommand}" />
+                                <MenuItem Header="LUT" Command="{Binding AddLutCommand}" />
+                                <MenuItem Header="Vignette" Command="{Binding AddVignetteCommand}" />
+                            </MenuFlyout>
+                        </Button.Flyout>
+                    </Button>
                 </StackPanel>
             </ScrollViewer>
         </Border>

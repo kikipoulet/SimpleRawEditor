@@ -1,12 +1,24 @@
+using System;
+using Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using SimpleRawEditor.Models;
+using SimpleRawEditor.Services.Processing;
+using SimpleRawEditor.Services.Processing.Denoising;
+using SimpleRawEditor.Views.Adjustments;
 
 namespace SimpleRawEditor.ViewModels.Editor.Adjustments;
 
-public partial class DenoiseViewModel : ObservableObject
+public partial class DenoiseViewModel : ObservableObject, IAdjustmentStep
 {
-    private readonly ImageAdjustments _adjustments;
+    private readonly DenoisingHandler _denoisingHandler;
+    private byte[]? _currentPixels;
+    private int _currentWidth;
+    private int _currentHeight;
+    private int _currentStride;
+
+    public string Name => "Denoise";
+    public UserControl View => new DenoiseView { DataContext = this };
+    public event Action? RemoveRequested;
 
     [ObservableProperty]
     private bool _isExpanded = true;
@@ -20,30 +32,40 @@ public partial class DenoiseViewModel : ObservableObject
 
     public bool CanAdjust => IsEnabled;
 
-    public DenoiseViewModel(ImageAdjustments adjustments)
-    {
-        _adjustments = adjustments;
-        IsEnabled = adjustments.IsDenoiseEnabled;
-        Amount = adjustments.DenoiseAmount;
+    public void Remove() => RemoveRequested?.Invoke();
 
-        _adjustments.PropertyChanged += (s, e) =>
+    public DenoiseViewModel()
+    {
+        _denoisingHandler = new DenoisingHandler();
+    }
+
+    public void Apply(byte[] pixels, int width, int height, int stride)
+    {
+        if (!IsEnabled || Amount < 0.001) return;
+
+        float strength = (float)(Amount * 2.5);
+
+        _denoisingHandler.InitializeCache(pixels, width, height, stride);
+
+        var denoised = _denoisingHandler.GetDenoisedPixels(strength);
+
+        if (denoised != null)
         {
-            if (e.PropertyName == nameof(ImageAdjustments.IsDenoiseEnabled))
-                IsEnabled = _adjustments.IsDenoiseEnabled;
-            else if (e.PropertyName == nameof(ImageAdjustments.DenoiseAmount))
-                Amount = _adjustments.DenoiseAmount;
-        };
+            float blend = 1.0f;
+            float invBlend = 0f;
+
+            for (int i = 0; i < denoised.Length; i += 4)
+            {
+                pixels[i] = (byte)(pixels[i] * invBlend + denoised[i] * blend);
+                pixels[i + 1] = (byte)(pixels[i + 1] * invBlend + denoised[i + 1] * blend);
+                pixels[i + 2] = (byte)(pixels[i + 2] * invBlend + denoised[i + 2] * blend);
+            }
+        }
     }
 
     partial void OnIsEnabledChanged(bool value)
     {
-        _adjustments.IsDenoiseEnabled = value;
         IsExpanded = value;
-    }
-
-    partial void OnAmountChanged(double value)
-    {
-        _adjustments.DenoiseAmount = value;
     }
 
     [RelayCommand]

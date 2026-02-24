@@ -13,18 +13,18 @@ public static class LutApplicationHandler
         int size = lut.Size;
         float[] data = lut.Data;
 
-        float nR = ToneAdjustmentHandler.Clamp01(r / 255.0f);
-        float nG = ToneAdjustmentHandler.Clamp01(g / 255.0f);
-        float nB = ToneAdjustmentHandler.Clamp01(b / 255.0f);
+        float nR = ToneAdjustmentHandler.Clamp01(r);
+        float nG = ToneAdjustmentHandler.Clamp01(g);
+        float nB = ToneAdjustmentHandler.Clamp01(b);
 
         var (lutR, lutG, lutB) = SampleLutNearest(data, size, nR, nG, nB);
 
-        float intensityNorm = p.LutIntensity / 100.0f;
+        float intensityNorm = p.LutIntensity;
         float oneMinus = 1.0f - intensityNorm;
 
-        r = r * oneMinus + lutR * 255.0f * intensityNorm;
-        g = g * oneMinus + lutG * 255.0f * intensityNorm;
-        b = b * oneMinus + lutB * 255.0f * intensityNorm;
+        r = r * oneMinus + lutR * intensityNorm;
+        g = g * oneMinus + lutG * intensityNorm;
+        b = b * oneMinus + lutB * intensityNorm;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
