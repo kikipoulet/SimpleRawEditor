@@ -17,14 +17,31 @@ public abstract partial class AdjustmentStep : ObservableObject
     [ObservableProperty] 
     protected bool _isExpanded = true;
 
-    public event Action? RemoveRequested;
-    public event Action? Changed;
+    [ObservableProperty]
+    protected bool _isComputing;
 
-    public abstract void Apply(byte[] pixels, int width, int height, int stride);
+    public event Action? RemoveRequested;
+    public event Action<AdjustmentStep>? Changed;
+
+    public void Apply(byte[] pixels, int width, int height, int stride)
+    {
+        if (!IsEnabled) return;
+        IsComputing = true;
+        try
+        {
+            ApplyCore(pixels, width, height, stride);
+        }
+        finally
+        {
+            IsComputing = false;
+        }
+    }
+
+    protected abstract void ApplyCore(byte[] pixels, int width, int height, int stride);
 
     public void RequestRemove() => RemoveRequested?.Invoke();
     
-    protected void NotifyChanged() => Changed?.Invoke();
+    protected void NotifyChanged() => Changed?.Invoke(this);
 
     [RelayCommand]
     public void Toggle() => IsEnabled = !IsEnabled;
@@ -44,7 +61,7 @@ public abstract partial class AdjustmentStep : ObservableObject
             OnIsEnabledChangedCore(IsEnabled);
         }
         
-        if (e.PropertyName != nameof(IsExpanded))
+        if (e.PropertyName != nameof(IsExpanded) && e.PropertyName != nameof(IsComputing))
         {
             NotifyChanged();
         }

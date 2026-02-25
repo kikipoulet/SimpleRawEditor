@@ -23,14 +23,14 @@ public partial class EditorViewModel : ObservableObject
 
     public ObservableCollection<AdjustmentStep> Adjustments { get; } = new();
 
-    public event Action? AdjustmentsChanged;
+    public event Action<AdjustmentStep?>? AdjustmentsChanged;
 
     public EditorViewModel(LutService lutService)
     {
         _lutService = lutService;
         
         var basic = new BasicAdjustment();
-        basic.Changed += () => AdjustmentsChanged?.Invoke();
+        basic.Changed += step => AdjustmentsChanged?.Invoke(step);
         Adjustments.Add(basic);
     }
 
@@ -39,7 +39,7 @@ public partial class EditorViewModel : ObservableObject
     {
         var denoise = new DenoiseAdjustment();
         denoise.RemoveRequested += () => RemoveStep(denoise);
-        denoise.Changed += () => AdjustmentsChanged?.Invoke();
+        denoise.Changed += step => AdjustmentsChanged?.Invoke(step);
         
         var insertIndex = FindDenoiseInsertIndex();
         Adjustments.Insert(insertIndex, denoise);
@@ -50,7 +50,7 @@ public partial class EditorViewModel : ObservableObject
     {
         var lut = new LutAdjustment(_lutService);
         lut.RemoveRequested += () => RemoveStep(lut);
-        lut.Changed += () => AdjustmentsChanged?.Invoke();
+        lut.Changed += step => AdjustmentsChanged?.Invoke(step);
         
         Adjustments.Add(lut);
     }
@@ -60,7 +60,7 @@ public partial class EditorViewModel : ObservableObject
     {
         var vignette = new VignetteAdjustment();
         vignette.RemoveRequested += () => RemoveStep(vignette);
-        vignette.Changed += () => AdjustmentsChanged?.Invoke();
+        vignette.Changed += step => AdjustmentsChanged?.Invoke(step);
         
         Adjustments.Add(vignette);
     }
@@ -88,7 +88,7 @@ public partial class EditorViewModel : ObservableObject
     {
         if (step is BasicAdjustment) return;
         Adjustments.Remove(step);
-        AdjustmentsChanged?.Invoke();
+        AdjustmentsChanged?.Invoke(null);
     }
 
     public void SetImage(Bitmap image)
@@ -116,7 +116,7 @@ public partial class EditorViewModel : ObservableObject
         {
             Adjustments.Clear();
             var basic = new BasicAdjustment();
-            basic.Changed += () => AdjustmentsChanged?.Invoke();
+            basic.Changed += step => AdjustmentsChanged?.Invoke(step);
             Adjustments.Add(basic);
         }
         else
@@ -127,7 +127,7 @@ public partial class EditorViewModel : ObservableObject
             ((BasicAdjustment)Adjustments[0]).Shadows = 0;
         }
         
-        AdjustmentsChanged?.Invoke();
+        AdjustmentsChanged?.Invoke(null);
     }
 
     public System.Collections.Generic.IReadOnlyList<AdjustmentStep> GetAdjustmentSteps()

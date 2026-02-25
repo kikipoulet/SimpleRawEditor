@@ -20,12 +20,28 @@ public class ImageProcessor : IDisposable
     private int _pendingRequests;
     private readonly object _lock = new();
 
+    private byte[]? _sourcePixels;
+    private Dictionary<int, byte[]> _stepCaches = new();
+    private int _cachedWidth;
+    private int _cachedHeight;
+    private int _cachedStride;
+
     public event Action<Bitmap>? ImageProcessed;
     public event Action<string>? ProcessingError;
 
     public void SetSource(WriteableBitmap source)
     {
-        _source = source;
+        if (!ReferenceEquals(_source, source))
+        {
+            _source = source;
+            ClearCaches();
+        }
+    }
+
+    public void ClearCaches()
+    {
+        _sourcePixels = null;
+        _stepCaches.Clear();
     }
 
     public void Cancel()
@@ -34,6 +50,11 @@ public class ImageProcessor : IDisposable
     }
 
     public void RequestProcessing(IReadOnlyList<AdjustmentStep> steps, bool isPreview)
+    {
+        RequestProcessingFrom(null, steps, isPreview);
+    }
+
+    public void RequestProcessingFrom(AdjustmentStep? changedStep, IReadOnlyList<AdjustmentStep> steps, bool isPreview)
     {
         Interlocked.Increment(ref _pendingRequests);
         
@@ -51,7 +72,7 @@ public class ImageProcessor : IDisposable
                 
                 try
                 {
-                    var result = ProcessInternal(steps, isPreview, _cts.Token);
+                    var result = ProcessInternalFrom(changedStep, steps, isPreview, _cts.Token);
                     
                     if (result != null)
                     {
@@ -69,7 +90,7 @@ public class ImageProcessor : IDisposable
         });
     }
 
-    private WriteableBitmap? ProcessInternal(IReadOnlyList<AdjustmentStep> steps, bool isPreview, CancellationToken ct)
+    private WriteableBitmap? ProcessInternalFrom(AdjustmentStep? changedStep, IReadOnlyList<AdjustmentStep> steps, bool isPreview, CancellationToken ct)
     {
         if (_source == null) return null;
 
@@ -81,33 +102,88 @@ public class ImageProcessor : IDisposable
         }
         else
         {
-            return ProcessFullResolution(_source, steps, ct);
+            return ProcessFullResolutionFrom(changedStep, steps, ct);
         }
     }
 
-    private WriteableBitmap ProcessFullResolution(WriteableBitmap source, IReadOnlyList<AdjustmentStep> steps, CancellationToken ct)
+    private WriteableBitmap ProcessFullResolutionFrom(AdjustmentStep? changedStep, IReadOnlyList<AdjustmentStep> steps, CancellationToken ct)
     {
-        var pixelSize = source.PixelSize;
+        var pixelSize = _source!.PixelSize;
         int width = pixelSize.Width;
         int height = pixelSize.Height;
 
-        using var srcBuffer = source.Lock();
+        using var srcBuffer = _source.Lock();
         int stride = srcBuffer.RowBytes;
         int totalBytes = height * stride;
 
-        byte[] pixels = new byte[totalBytes];
-        Marshal.Copy(srcBuffer.Address, pixels, 0, totalBytes);
+        bool dimensionChanged = width != _cachedWidth || height != _cachedHeight || stride != _cachedStride;
+        if (dimensionChanged)
+        {
+            ClearCaches();
+            _cachedWidth = width;
+            _cachedHeight = height;
+            _cachedStride = stride;
+        }
 
-        foreach (var step in steps)
+        if (_sourcePixels == null)
+        {
+            _sourcePixels = new byte[totalBytes];
+            Marshal.Copy(srcBuffer.Address, _sourcePixels, 0, totalBytes);
+        }
+
+        int startIndex = 0;
+        if (changedStep != null)
+        {
+            for (int i = 0; i < steps.Count; i++)
+            {
+                if (steps[i] == changedStep)
+                {
+                    startIndex = i;
+                    break;
+                }
+            }
+        }
+
+        byte[] pixels;
+        if (startIndex == 0)
+        {
+            pixels = new byte[totalBytes];
+            Array.Copy(_sourcePixels, pixels, totalBytes);
+            _stepCaches.Clear();
+        }
+        else if (_stepCaches.TryGetValue(startIndex - 1, out var cachedPixels))
+        {
+            pixels = new byte[totalBytes];
+            Array.Copy(cachedPixels, pixels, totalBytes);
+            
+            for (int i = startIndex; i < steps.Count; i++)
+            {
+                _stepCaches.Remove(i);
+            }
+        }
+        else
+        {
+            pixels = new byte[totalBytes];
+            Array.Copy(_sourcePixels, pixels, totalBytes);
+            startIndex = 0;
+            _stepCaches.Clear();
+        }
+
+        for (int i = startIndex; i < steps.Count; i++)
         {
             ct.ThrowIfCancellationRequested();
+            var step = steps[i];
             if (step.IsEnabled)
             {
                 step.Apply(pixels, width, height, stride);
             }
+            
+            var cacheCopy = new byte[totalBytes];
+            Array.Copy(pixels, cacheCopy, totalBytes);
+            _stepCaches[i] = cacheCopy;
         }
 
-        var result = new WriteableBitmap(pixelSize, source.Dpi, source.Format, source.AlphaFormat);
+        var result = new WriteableBitmap(pixelSize, _source.Dpi, _source.Format, _source.AlphaFormat);
         using var destBuffer = result.Lock();
         Marshal.Copy(pixels, 0, destBuffer.Address, pixels.Length);
 

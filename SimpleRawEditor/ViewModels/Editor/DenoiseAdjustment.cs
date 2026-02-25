@@ -15,9 +15,9 @@ public partial class DenoiseAdjustment : AdjustmentStep
     [ObservableProperty] 
     private double _amount;
 
-    public override void Apply(byte[] pixels, int width, int height, int stride)
+    protected override void ApplyCore(byte[] pixels, int width, int height, int stride)
     {
-        if (!IsEnabled || Amount < 0.001) return;
+        if (Amount < 0.001) return;
 
         float strength = (float)(Amount * 2.5);
 

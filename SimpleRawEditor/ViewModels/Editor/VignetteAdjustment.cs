@@ -17,9 +17,9 @@ public partial class VignetteAdjustment : AdjustmentStep
     [ObservableProperty] 
     private double _spread = 50;
 
-    public override void Apply(byte[] pixels, int width, int height, int stride)
+    protected override void ApplyCore(byte[] pixels, int width, int height, int stride)
     {
-        if (!IsEnabled || Math.Abs(Intensity) < 0.001) return;
+        if (Math.Abs(Intensity) < 0.001) return;
 
         float intensity = (float)(Intensity / 100.0);
         float spread = (float)(Spread / 100.0);

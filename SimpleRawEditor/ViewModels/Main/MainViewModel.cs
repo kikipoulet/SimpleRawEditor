@@ -69,18 +69,27 @@ public partial class MainViewModel : ObservableObject
             }
         };
 
-        _editor.AdjustmentsChanged += () =>
+        _editor.AdjustmentsChanged += step =>
         {
-            RequestProcessing();
+            RequestProcessingFrom(step);
         };
     }
 
     private void RequestProcessing()
     {
+        RequestProcessingFrom(null);
+    }
+
+    private void RequestProcessingFrom(AdjustmentStep? changedStep)
+    {
         if (CurrentRawImage?.OriginalBitmap is WriteableBitmap wb)
         {
             _processor.SetSource(wb);
-            _processor.RequestProcessing(_editor.GetAdjustmentSteps(), _isDraggingSlider);
+            if (changedStep == null)
+            {
+                _processor.ClearCaches();
+            }
+            _processor.RequestProcessingFrom(changedStep, _editor.GetAdjustmentSteps(), _isDraggingSlider);
         }
     }
 

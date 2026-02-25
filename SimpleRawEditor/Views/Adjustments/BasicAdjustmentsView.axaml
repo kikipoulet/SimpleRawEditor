@@ -3,10 +3,11 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 xmlns:vm="using:SimpleRawEditor.ViewModels.Editor"
-mc:Ignorable="d" d:DesignWidth="300"
+             xmlns:suki="https://github.com/kikipoulet/SukiUI"
+             mc:Ignorable="d" d:DesignWidth="300"
 x:Class="SimpleRawEditor.Views.Adjustments.BasicAdjustmentsView"
 x:DataType="vm:BasicAdjustment">
-
+<suki:BusyArea IsBusy="{Binding IsComputing }">
     <Panel>
       
         <Expander IsExpanded="{Binding IsExpanded}"
@@ -50,4 +51,5 @@ x:DataType="vm:BasicAdjustment">
                   Margin="17,13"
                   FontWeight="SemiBold" />
     </Panel>
+    </suki:BusyArea>
 </UserControl>

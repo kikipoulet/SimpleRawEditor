@@ -53,9 +53,9 @@ public partial class LutAdjustment : AdjustmentStep
         }
     }
 
-    public override void Apply(byte[] pixels, int width, int height, int stride)
+    protected override void ApplyCore(byte[] pixels, int width, int height, int stride)
     {
-        if (!IsEnabled || ActiveLut == null || Intensity < 0.001) return;
+        if (ActiveLut == null || Intensity < 0.001) return;
 
         float intensity = (float)(Intensity / 100.0);
         const float inv255 = 1.0f / 255.0f;

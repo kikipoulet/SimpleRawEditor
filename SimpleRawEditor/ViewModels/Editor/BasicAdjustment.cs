@@ -29,9 +29,8 @@ public partial class BasicAdjustment : AdjustmentStep
         IsEnabled = true;
     }
 
-    public override void Apply(byte[] pixels, int width, int height, int stride)
+    protected override void ApplyCore(byte[] pixels, int width, int height, int stride)
     {
-        if (!IsEnabled) return;
         if (Math.Abs(Exposure) < 0.001 && Math.Abs(Contrast) < 0.001 &&
             Math.Abs(Highlights) < 0.001 && Math.Abs(Shadows) < 0.001) return;
 
