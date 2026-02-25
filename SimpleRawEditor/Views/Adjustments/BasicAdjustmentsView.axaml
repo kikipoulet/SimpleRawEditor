@@ -39,6 +39,14 @@ x:DataType="vm:BasicAdjustment">
                     <TextBlock Text="Shadows" Foreground="{DynamicResource SukiLowText}" FontSize="13" FontWeight="DemiBold" />
                     <Slider Minimum="-100" Maximum="100" Value="{Binding Shadows}" 
                             TickFrequency="1" IsSnapToTickEnabled="True" Margin="-8,0" Classes="Light" />
+                    
+                    <Button Margin="0,10,-14,-10" Classes="Basic" HorizontalAlignment="Right" Command="{Binding AutoCommand}">
+                        <LucideIcon Kind="WandSparkles"  Foreground="{DynamicResource SukiLowText}">
+                            <LucideIcon.RenderTransform>
+                                <ScaleTransform ScaleX="0.75" ScaleY="0.75"></ScaleTransform>
+                            </LucideIcon.RenderTransform>
+                        </LucideIcon>
+                    </Button>
                 </StackPanel>
             </StackPanel>
         </Expander>

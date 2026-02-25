@@ -22,29 +22,22 @@
   </suki:SukiWindow.MenuItems>
 
   <Grid RowDefinitions="*,Auto">
-    <!-- 
-          <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center" Foreground="White" Margin="20,0,0,0" />
-          <ProgressBar Height="15" VerticalAlignment="Center" IsVisible="{Binding IsLoading}" IsIndeterminate="True" Width="120" Margin="10,0,0,0" />
-       -->
-
-    <!-- Zone principale -->
     <Grid Grid.Row="0" ColumnDefinitions="*,350">
-      <!-- Image principale -->
       <Border Grid.Column="0" Padding="10">
         <Panel>
-        <Image Source="{Binding Editor.DisplayedImage}"
+        <Image Source="{Binding SelectedImage.DisplayedBitmap}"
                Stretch="Uniform"
                HorizontalAlignment="Center"
                VerticalAlignment="Center" />
-        <controls:RawImageInfo HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="30" IsVisible="{Binding CurrentRawImage, Converter={x:Static ObjectConverters.IsNotNull}}" DataContext="{Binding }" /> 
+        <controls:RawImageInfo HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="30" IsVisible="{Binding SelectedImage, Converter={x:Static ObjectConverters.IsNotNull}}" DataContext="{Binding }" /> 
         </Panel>
       </Border>
 
-      <!-- Panneau d'ajustements -->
-      <editor:EditorView Grid.Column="1" DataContext="{Binding Editor}" />
+      <Panel Grid.Column="1" IsVisible="{Binding SelectedImage, Converter={x:Static ObjectConverters.IsNotNull}}">
+        <editor:EditorView DataContext="{Binding SelectedImage}" />
+      </Panel>
     </Grid>
 
-    <!-- Liste des thumbnails -->
     <views:ThumbnailListView Grid.Row="1" DataContext="{Binding }" />
   </Grid>
 </suki:SukiWindow>

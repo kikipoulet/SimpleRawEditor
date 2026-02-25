@@ -1,4 +1,4 @@
-﻿<UserControl xmlns="https://github.com/avaloniaui"
+<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -14,14 +14,14 @@
             <StackPanel Spacing="5">
                 <StackPanel Spacing="10" Orientation="Horizontal">
                 <avalonia:MaterialIcon Height="15" Width="15" Foreground="{DynamicResource SukiText}" Kind="CameraOutline"></avalonia:MaterialIcon>
-                <TextBlock  FontWeight="DemiBold" FontSize="16" Text="{Binding CurrentRawImage.Metadata.Model}"></TextBlock>
+                <TextBlock  FontWeight="DemiBold" FontSize="16" Text="{Binding SelectedImage.Metadata.Model}"></TextBlock>
                 </StackPanel>
-                    <TextBlock Margin="0,3,0,0" Foreground="{DynamicResource SukiLowText}" FontSize="13" Text="{Binding CurrentRawImage.Metadata.Lens}"></TextBlock>
+                    <TextBlock Margin="0,3,0,0" Foreground="{DynamicResource SukiLowText}" FontSize="13" Text="{Binding SelectedImage.Metadata.Lens}"></TextBlock>
             
             <StackPanel Orientation="Horizontal" Spacing="4">
-                  <TextBlock Foreground="{DynamicResource SukiLowText}" FontSize="13" Text="{Binding CurrentRawImage.Metadata.Height}"></TextBlock>
+                  <TextBlock Foreground="{DynamicResource SukiLowText}" FontSize="13" Text="{Binding SelectedImage.Metadata.Height}"></TextBlock>
                 <TextBlock Foreground="{DynamicResource SukiLowText}" FontSize="13" Text="x"></TextBlock>
-                <TextBlock Foreground="{DynamicResource SukiLowText}" FontSize="13" Text="{Binding CurrentRawImage.Metadata.Width}"></TextBlock>
+                <TextBlock Foreground="{DynamicResource SukiLowText}" FontSize="13" Text="{Binding SelectedImage.Metadata.Width}"></TextBlock>
             </StackPanel>
                 
             <Border Height="1" Margin="0,3" Width="200" Background="{DynamicResource SukiControlBorderBrush}"></Border>
@@ -29,16 +29,16 @@
             <Grid ColumnDefinitions="*,*,*">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Spacing="3" Grid.Column="0" >
                     <TextBlock  FontWeight="DemiBold" FontSize="13" Text="ISO"></TextBlock>
-                    <TextBlock  FontWeight="DemiBold" FontSize="13" Text="{Binding CurrentRawImage.Metadata.IsoSpeed}"></TextBlock>
+                    <TextBlock  FontWeight="DemiBold" FontSize="13" Text="{Binding SelectedImage.Metadata.IsoSpeed}"></TextBlock>
                 </StackPanel>
               
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="0" Grid.Column="1" >
                     <TextBlock  FontWeight="DemiBold" FontSize="13" Text="f/"></TextBlock>
-                    <TextBlock  FontWeight="DemiBold" FontSize="13" Text="{Binding CurrentRawImage.Metadata.Aperture}"></TextBlock>
+                    <TextBlock  FontWeight="DemiBold" FontSize="13" Text="{Binding SelectedImage.Metadata.Aperture}"></TextBlock>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="0" Grid.Column="2" >
                     <TextBlock  FontWeight="DemiBold" FontSize="13" Text="1/"></TextBlock>
-                    <TextBlock  FontWeight="DemiBold" FontSize="13" Text="{Binding CurrentRawImage.Metadata.Shutter}"></TextBlock>
+                    <TextBlock  FontWeight="DemiBold" FontSize="13" Text="{Binding SelectedImage.Metadata.Shutter}"></TextBlock>
                     <TextBlock  FontWeight="DemiBold" FontSize="13" Text=" s"></TextBlock>
                 </StackPanel>
             </Grid>

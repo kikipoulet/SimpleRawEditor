@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using SimpleRawEditor.Services;
 using SimpleRawEditor.Views.Adjustments;
 
@@ -24,13 +25,28 @@ public partial class BasicAdjustment : AdjustmentStep
     [ObservableProperty] 
     private double _shadows;
 
+    private bool _autoPending;
+
     public BasicAdjustment()
     {
         IsEnabled = true;
     }
 
+    [RelayCommand]
+    private void Auto()
+    {
+        _autoPending = true;
+        NotifyChanged();
+    }
+
     protected override void ApplyCore(byte[] pixels, int width, int height, int stride)
     {
+        if (_autoPending)
+        {
+            PerformAutoAdjust(pixels, width, height, stride);
+            _autoPending = false;
+        }
+
         if (Math.Abs(Exposure) < 0.001 && Math.Abs(Contrast) < 0.001 &&
             Math.Abs(Highlights) < 0.001 && Math.Abs(Shadows) < 0.001) return;
 
@@ -174,5 +190,105 @@ public partial class BasicAdjustment : AdjustmentStep
             Shadows = 0;
         }
         base.OnIsEnabledChangedCore(value);
+    }
+
+    private void PerformAutoAdjust(byte[] pixels, int width, int height, int stride)
+    {
+        int[] histogram = new int[256];
+        double sumLum = 0;
+        double sumLumSq = 0;
+        double sumLumCubed = 0;
+        long pixelCount = 0;
+        int shadowClipped = 0;
+        int highlightClipped = 0;
+        const float inv255 = 1.0f / 255.0f;
+
+        for (int y = 0; y < height; y++)
+        {
+            int rowStart = y * stride;
+            for (int x = 0; x < width; x++)
+            {
+                int index = rowStart + x * 4;
+                float b = pixels[index];
+                float g = pixels[index + 1];
+                float r = pixels[index + 2];
+
+                float luminance = 0.299f * r + 0.587f * g + 0.114f * b;
+                int lumBin = Math.Clamp((int)luminance, 0, 255);
+                histogram[lumBin]++;
+
+                double normLum = luminance * inv255;
+                sumLum += normLum;
+                sumLumSq += normLum * normLum;
+                sumLumCubed += normLum * normLum * normLum;
+
+                if (luminance < 5) shadowClipped++;
+                if (luminance > 250) highlightClipped++;
+
+                pixelCount++;
+            }
+        }
+
+        double mean = sumLum / pixelCount;
+        double variance = (sumLumSq / pixelCount) - (mean * mean);
+        double stdDev = Math.Sqrt(Math.Max(0, variance));
+        double skewness = stdDev > 0.001
+            ? ((sumLumCubed / pixelCount) - 3 * mean * variance - mean * mean * mean) / (stdDev * stdDev * stdDev)
+            : 0;
+
+        double clippedShadowRatio = (double)shadowClipped / pixelCount;
+        double clippedHighlightRatio = (double)highlightClipped / pixelCount;
+
+        const double targetMean = 0.46;
+        const double targetStdDev = 0.25;
+
+        double exposure = 0;
+        double contrast = 0;
+        double shadows = 0;
+        double highlights = 0;
+
+        double meanDiff = targetMean - mean;
+        exposure = meanDiff * 200;
+        exposure = Math.Clamp(exposure, -50, 50);
+
+        double stdDiff = targetStdDev - stdDev;
+        contrast = stdDiff * 300;
+        contrast = Math.Clamp(contrast, -40, 60);
+
+        if (skewness > 0.3)
+        {
+            shadows = Math.Min(skewness * 40, 35);
+        }
+        else if (skewness < -0.3)
+        {
+            highlights = Math.Min(-skewness * 40, 35);
+        }
+
+        if (clippedShadowRatio > 0.01)
+        {
+            shadows += clippedShadowRatio * 200;
+            shadows = Math.Min(shadows, 40);
+        }
+
+        if (clippedHighlightRatio > 0.01)
+        {
+            highlights -= clippedHighlightRatio * 300;
+            highlights = Math.Max(highlights, -45);
+        }
+
+        double dynamicRange = stdDev * 4;
+        if (dynamicRange < 0.6)
+        {
+            contrast += (0.6 - dynamicRange) * 50;
+        }
+        else if (dynamicRange > 1.4)
+        {
+            contrast -= (dynamicRange - 1.4) * 30;
+        }
+
+        Exposure = Math.Round(Math.Clamp(exposure, -50, 50), 1);
+        Contrast = Math.Round(Math.Clamp(contrast, -40, 60), 1);
+        Shadows = Math.Round(Math.Clamp(shadows, -30, 50), 1);
+        Highlights = Math.Round(Math.Clamp(highlights, -50, 40), 1);
     }
 }

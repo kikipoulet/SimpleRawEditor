@@ -1,5 +1,4 @@
 using System;
-using System.Collections.ObjectModel;
 using System.IO;
 using System.Threading.Tasks;
 using Avalonia.Controls;
@@ -8,7 +7,6 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using SimpleRawEditor.Models;
 using SimpleRawEditor.Services;
 using SimpleRawEditor.ViewModels.Editor;
 using SimpleRawEditor.ViewModels.Main.Thumbnails;
@@ -23,13 +21,10 @@ public partial class MainViewModel : ObservableObject
     private bool _isDraggingSlider;
 
     [ObservableProperty]
-    private RawImageData? _currentRawImage;
-
-    [ObservableProperty]
     private ThumbnailListViewModel _thumbnailList = new();
 
     [ObservableProperty]
-    private EditorViewModel _editor;
+    private LoadedImageViewModel? _selectedImage;
 
     [ObservableProperty]
     private string _statusMessage = "Ready";
@@ -42,14 +37,12 @@ public partial class MainViewModel : ObservableObject
         _rawService = new RawImageService();
         _lutService = new LutService();
         _processor = new ImageProcessor();
-        
-        _editor = new EditorViewModel(_lutService);
 
         _processor.ImageProcessed += image =>
         {
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
-                _editor.UpdateDisplayedImage(image);
+                SelectedImage?.UpdateDisplayedBitmap(image);
             });
         };
 
@@ -68,11 +61,11 @@ public partial class MainViewModel : ObservableObject
                 await SelectImageAsync(image);
             }
         };
+    }
 
-        _editor.AdjustmentsChanged += step =>
-        {
-            RequestProcessingFrom(step);
-        };
+    private void OnAdjustmentsChanged(AdjustmentStep? step)
+    {
+        RequestProcessingFrom(step);
     }
 
     private void RequestProcessing()
@@ -82,14 +75,14 @@ public partial class MainViewModel : ObservableObject
 
     private void RequestProcessingFrom(AdjustmentStep? changedStep)
     {
-        if (CurrentRawImage?.OriginalBitmap is WriteableBitmap wb)
+        if (SelectedImage?.OriginalBitmap is WriteableBitmap wb)
         {
             _processor.SetSource(wb);
             if (changedStep == null)
             {
                 _processor.ClearCaches();
             }
-            _processor.RequestProcessingFrom(changedStep, _editor.GetAdjustmentSteps(), _isDraggingSlider);
+            _processor.RequestProcessingFrom(changedStep, SelectedImage.GetAdjustmentSteps(), _isDraggingSlider);
         }
     }
 
@@ -139,7 +132,7 @@ public partial class MainViewModel : ObservableObject
         {
             var thumbnail = await _rawService.LoadThumbnailAsync(filePath);
 
-            var loadedImage = new LoadedImageViewModel
+            var loadedImage = new LoadedImageViewModel(_lutService)
             {
                 FilePath = filePath,
                 FileName = Path.GetFileName(filePath),
@@ -162,15 +155,27 @@ public partial class MainViewModel : ObservableObject
         IsLoading = true;
         StatusMessage = $"Loading {image.FileName}...";
 
-        CurrentRawImage?.Dispose();
-
-        CurrentRawImage = await _rawService.LoadRawImageAsync(image.FilePath);
-
-        if (CurrentRawImage?.OriginalBitmap != null)
+        if (SelectedImage != null)
         {
-            _editor.SetImage(CurrentRawImage.OriginalBitmap);
+            SelectedImage.AdjustmentsChanged -= OnAdjustmentsChanged;
+        }
+
+        if (image.OriginalBitmap == null)
+        {
+            var raw = await _rawService.LoadRawImageAsync(image.FilePath);
+            if (raw?.OriginalBitmap != null)
+            {
+                image.SetImage(raw.OriginalBitmap, raw.Metadata);
+            }
+        }
+
+        image.AdjustmentsChanged += OnAdjustmentsChanged;
+        SelectedImage = image;
+
+        if (image.OriginalBitmap != null)
+        {
             RequestProcessing();
-            StatusMessage = $"{image.FileName} loaded ({CurrentRawImage.Width}x{CurrentRawImage.Height})";
+            StatusMessage = $"{image.FileName} loaded ({image.OriginalBitmap.PixelSize.Width}x{image.OriginalBitmap.PixelSize.Height})";
         }
         else
         {
@@ -183,7 +188,7 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void ResetAdjustments()
     {
-        _editor.Reset();
+        SelectedImage?.Reset();
     }
 
     [RelayCommand]
@@ -231,8 +236,8 @@ public partial class MainViewModel : ObservableObject
                 var filePath = result[0].Path.LocalPath;
                 var lut = _lutService.LoadFromPath(filePath);
 
-                _editor.AddLutCommand.Execute(null);
-                
+                SelectedImage?.AddLutCommand.Execute(null);
+
                 StatusMessage = $"LUT loaded: {Path.GetFileName(filePath)} (size: {lut.Size})";
             }
             catch (Exception ex)
